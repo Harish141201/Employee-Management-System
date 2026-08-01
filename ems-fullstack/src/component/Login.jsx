@@ -33,7 +33,12 @@ function Login() {
             <div className='container d-flex justify-content-center align-items-center'>
                 <div className="text-center card card-top">
                     <div className='card-head'>
-                        <h4 className='title'>Sign In</h4>
+                      <>
+    <h2 className="title">Welcome Back 👋</h2>
+    <p className="text-light mb-4">
+        Sign in to access the Employee Management System
+    </p>
+</>
                     </div>
                     <div className="card-body">
                         {error && (

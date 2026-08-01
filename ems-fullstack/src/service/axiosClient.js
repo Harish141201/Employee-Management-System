@@ -2,6 +2,8 @@ import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
+console.log("BASE_URL =", BASE_URL);
+
 const axiosClient = axios.create({
     baseURL: BASE_URL,
 });
@@ -15,8 +17,6 @@ axiosClient.interceptors.request.use((config) => {
     return config;
 });
 
-// If the token is missing/expired, the backend returns 401. Clear the
-// stale session and let the app redirect to /login on next render.
 axiosClient.interceptors.response.use(
     (response) => response,
     (error) => {
