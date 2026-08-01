@@ -1,45 +1,89 @@
 import './App.css'
 import Header from './component/Header'
 import ListEmployeeComponent from './component/ListEmployeeComponent'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useLocation
+} from 'react-router-dom'
+
 import EmployeeComponent from './component/EmployeeComponent'
 import Login from './component/Login'
 import ProtectedRoute from './component/ProtectedRoute'
 import Dashboard from './component/Dashboard'
 import { AuthProvider } from './context/AuthContext'
 
-function App() {
+function AppRoutes() {
+
+  const location = useLocation()
 
   return (
     <>
-      <AuthProvider>
-        <BrowserRouter>
-          <Header></Header>
-          <Routes>
-            <Route path='/login' element={<Login />}></Route>
+      {/* Hide Header on Login Page */}
+      {location.pathname !== '/login' && <Header />}
 
-            <Route path='/' element={
-              <ProtectedRoute><ListEmployeeComponent /></ProtectedRoute>
-            }></Route>
-            <Route path='/emplist' element={
-              <ProtectedRoute><ListEmployeeComponent /></ProtectedRoute>
-            }></Route>
-            <Route path='/dashboard' element={
-              <ProtectedRoute roles={['ADMIN', 'HR']}><Dashboard /></ProtectedRoute>
-            }></Route>
+      <Routes>
 
-            {/* Only ADMIN/HR can create or edit employee records —
-                mirrors the backend's @PreAuthorize rules. */}
-            <Route path='/add-employee' element={
-              <ProtectedRoute roles={['ADMIN', 'HR']}><EmployeeComponent /></ProtectedRoute>
-            }></Route>
-            <Route path='/update-employee/:id' element={
-              <ProtectedRoute roles={['ADMIN', 'HR']}><EmployeeComponent /></ProtectedRoute>
-            }></Route>
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
+        <Route path="/login" element={<Login />} />
+
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <ListEmployeeComponent />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/emplist"
+          element={
+            <ProtectedRoute>
+              <ListEmployeeComponent />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute roles={['ADMIN', 'HR']}>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/add-employee"
+          element={
+            <ProtectedRoute roles={['ADMIN', 'HR']}>
+              <EmployeeComponent />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/update-employee/:id"
+          element={
+            <ProtectedRoute roles={['ADMIN', 'HR']}>
+              <EmployeeComponent />
+            </ProtectedRoute>
+          }
+        />
+
+      </Routes>
     </>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
 
