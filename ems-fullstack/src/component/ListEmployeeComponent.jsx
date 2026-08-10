@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react'
-import { listEmployees, deleteEmployee, getMyProfile } from '../service/EmployeeService.js'
+import { listEmployees, deleteEmployee } from '../service/EmployeeService.js'
 import { listDepartments } from '../service/DepartmentService.js'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 
 const PAGE_SIZE = 10
+
+const STATUS_BADGE = {
+    ACTIVE: 'ph-badge-approved',
+    INACTIVE: 'ph-badge-pending',
+    TERMINATED: 'ph-badge-rejected',
+}
 
 function ListEmployeeComponent() {
     const navigate = useNavigate()
@@ -13,7 +19,6 @@ function ListEmployeeComponent() {
     const canDelete = hasRole('ADMIN')
 
     const [employee, setEmployee] = useState([])
-    const [myProfile, setMyProfile] = useState(null)
     const [error, setError] = useState('')
 
     const [search, setSearch] = useState('')
@@ -32,12 +37,6 @@ function ListEmployeeComponent() {
     useEffect(() => {
         if (canManage) {
             fetchEmployees()
-        } else {
-            getMyProfile().then((response) => {
-                setMyProfile(response.data)
-            }).catch(() => {
-                setError('Could not load your profile.')
-            })
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [canManage, page, departmentId])
@@ -68,10 +67,14 @@ function ListEmployeeComponent() {
     function addNewEmployee() {
         navigate('/add-employee')
     }
+    function viewhandler(id) {
+        navigate(`/employees/${id}`)
+    }
     function updatehandler(id) {
         navigate(`/update-employee/${id}`)
     }
     function deletehandler(id) {
+        if (!window.confirm('Delete this employee? This cannot be undone.')) return
         deleteEmployee(id).then(() => {
             fetchEmployees()
         }).catch(() => {
@@ -79,114 +82,130 @@ function ListEmployeeComponent() {
         })
     }
 
-    // EMPLOYEE-role accounts only ever see their own profile — the backend
-    // rejects a full-list request from this role anyway (403), so we don't
-    // even attempt it.
+    // EMPLOYEE-role accounts don't get a roster view at all — the backend
+    // rejects it (403) anyway. Send them straight to their own profile,
+    // which is now a full page (view + edit + change password), not a
+    // second, weaker read-only view living here too.
     if (!canManage) {
-        return (
-            <div className='container'>
-                <h3 className='text-center mt-3'>My Profile</h3>
-                {error && <div className="alert alert-danger">{error}</div>}
-                {myProfile && (
-                    <table className='table table-success table-striped table-bordered'>
+        return <Navigate to="/profile" replace />
+    }
+
+    return (
+        <div className="ph-page">
+            <div className="ph-page-header">
+                <h2>Employees</h2>
+                <button className="ph-btn ph-btn-primary" onClick={addNewEmployee}>
+                    <i className="bi bi-person-plus-fill"></i> Add Employee
+                </button>
+            </div>
+
+            {error && <div className="alert alert-danger ph-alert mb-3">{error}</div>}
+
+            <form className="d-flex gap-2 flex-wrap mb-3" onSubmit={handleSearchSubmit}>
+                <input
+                    type="text"
+                    className="ph-input"
+                    placeholder="Search name or email..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    style={{ maxWidth: 260 }}
+                />
+                <select
+                    className="ph-select"
+                    value={departmentId}
+                    onChange={(e) => { setDepartmentId(e.target.value); setPage(0) }}
+                    style={{ maxWidth: 220 }}
+                >
+                    <option value=''>All Departments</option>
+                    {departments.map(dept => (
+                        <option key={dept.id} value={dept.id}>{dept.name}</option>
+                    ))}
+                </select>
+                <button type="submit" className="ph-btn ph-btn-outline">
+                    <i className="bi bi-search"></i> Search
+                </button>
+            </form>
+
+            <div className="ph-table-wrap">
+                {employee.length === 0 ? (
+                    <div className="ph-empty">No employees match your filters.</div>
+                ) : (
+                    <table className="ph-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Designation</th>
+                                <th>Department</th>
+                                <th>Manager</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
                         <tbody>
-                            <tr><th>First Name</th><td>{myProfile.firstName}</td></tr>
-                            <tr><th>Last Name</th><td>{myProfile.lastName}</td></tr>
-                            <tr><th>Email</th><td>{myProfile.email}</td></tr>
-                            <tr><th>Department</th><td>{myProfile.departmentName || '—'}</td></tr>
-                            <tr><th>Manager</th><td>{myProfile.managerName || '—'}</td></tr>
+                            {employee.map(item => (
+                                <tr key={item.id}>
+                                    <td className="text-muted">{item.id}</td>
+                                    <td>
+                                        <div className="d-flex align-items-center gap-2" style={{ cursor: 'pointer' }} onClick={() => viewhandler(item.id)}>
+                                            <div style={{
+                                                width: 32, height: 32, borderRadius: '50%',
+                                                background: 'var(--ph-gradient)', color: '#fff',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontSize: 13, fontWeight: 700, flexShrink: 0,
+                                            }}>
+                                                {item.firstName.charAt(0).toUpperCase()}
+                                            </div>
+                                            <span style={{ color: 'var(--ph-blue)', fontWeight: 500 }}>{item.firstName} {item.lastName}</span>
+                                        </div>
+                                    </td>
+                                    <td className="text-muted">{item.designation || '—'}</td>
+                                    <td>{item.departmentName || '—'}</td>
+                                    <td>{item.managerName ? <><span className="ph-chain">↳</span>{item.managerName}</> : '—'}</td>
+                                    <td>
+                                        {item.status
+                                            ? <span className={`ph-badge ${STATUS_BADGE[item.status] || 'ph-badge-cancelled'}`}>{item.status}</span>
+                                            : '—'}
+                                    </td>
+                                    <td>
+                                        <div className="d-flex gap-2 justify-content-end">
+                                            <button className="ph-btn ph-btn-ghost" onClick={() => updatehandler(item.id)}>
+                                                <i className="bi bi-pencil-fill"></i>
+                                            </button>
+                                            {canDelete && (
+                                                <button className="ph-btn" style={{ background: 'var(--ph-danger-bg)', color: 'var(--ph-danger)' }} onClick={() => deletehandler(item.id)}>
+                                                    <i className="bi bi-trash-fill"></i>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 )}
             </div>
-        )
-    }
 
-    return (
-        <>
-            <div className='container'>
-                <h3 className='text-center mt-3'>List Of Employees</h3>
-                {error && <div className="alert alert-danger">{error}</div>}
-
-                <div className="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-2">
-                    <form className="d-flex gap-2 flex-wrap" onSubmit={handleSearchSubmit}>
-                        <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Search name or email..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            style={{ minWidth: 220 }}
-                        />
-                        <select
-                            className="form-control"
-                            value={departmentId}
-                            onChange={(e) => { setDepartmentId(e.target.value); setPage(0) }}
-                        >
-                            <option value=''>All Departments</option>
-                            {departments.map(dept => (
-                                <option key={dept.id} value={dept.id}>{dept.name}</option>
-                            ))}
-                        </select>
-                        <button type="submit" className="btn btn-outline-primary">Search</button>
-                    </form>
-                    <button className='btn btn-danger' onClick={addNewEmployee}>Add Employee</button>
-                </div>
-
-                <table className='table table-success table-striped table-bordered table-hover'>
-                    <thead>
-                        <tr className='text-center'>
-                            <th scope="col">Id</th>
-                            <th scope="col">First Name</th>
-                            <th scope="col">Last Name</th>
-                            <th scope="col">Email</th>
-                            <th scope="col">Department</th>
-                            <th scope="col">Manager</th>
-                            <th scope='col'>Update</th>
-                            {canDelete && <th scope='col'>Delete</th>}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {
-                            employee.map(item =>
-                                <tr key={item.id} className='text-center'>
-                                    <td>{item.id}</td>
-                                    <td>{item.firstName}</td>
-                                    <td>{item.lastName}</td>
-                                    <td>{item.email}</td>
-                                    <td>{item.departmentName || '—'}</td>
-                                    <td>{item.managerName || '—'}</td>
-                                    <td><button className='btn btn-success' onClick={() => updatehandler(item.id)}>Update</button></td>
-                                    {canDelete && (
-                                        <td><button className='btn btn-primary' onClick={() => deletehandler(item.id)}>Delete</button></td>
-                                    )}
-                                </tr>
-                            )
-                        }
-                    </tbody>
-                </table>
-
-                {totalPages > 1 && (
-                    <div className="d-flex justify-content-between align-items-center mb-4">
-                        <span className="text-muted small">
-                            Page {page + 1} of {totalPages} ({totalElements} total)
-                        </span>
-                        <div className="btn-group">
-                            <button
-                                className="btn btn-outline-secondary"
-                                disabled={page === 0}
-                                onClick={() => setPage(p => Math.max(0, p - 1))}
-                            >Previous</button>
-                            <button
-                                className="btn btn-outline-secondary"
-                                disabled={page >= totalPages - 1}
-                                onClick={() => setPage(p => p + 1)}
-                            >Next</button>
-                        </div>
+            {totalPages > 1 && (
+                <div className="d-flex justify-content-between align-items-center mt-3">
+                    <span className="text-muted small">
+                        Page {page + 1} of {totalPages} ({totalElements} total)
+                    </span>
+                    <div className="d-flex gap-2">
+                        <button
+                            className="ph-btn ph-btn-ghost"
+                            disabled={page === 0}
+                            onClick={() => setPage(p => Math.max(0, p - 1))}
+                        >Previous</button>
+                        <button
+                            className="ph-btn ph-btn-ghost"
+                            disabled={page >= totalPages - 1}
+                            onClick={() => setPage(p => p + 1)}
+                        >Next</button>
                     </div>
-                )}
-            </div>
-        </>
+                </div>
+            )}
+        </div>
     )
 }
 

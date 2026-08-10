@@ -12,5 +12,6 @@ public class DashboardSummaryDTO {
     private long totalDepartments;
     private long employeesWithoutDepartment;
     private long employeesWithoutManager;
+    private long pendingLeaveRequests;
     private List<DepartmentHeadcountDTO> headcountByDepartment;
 }

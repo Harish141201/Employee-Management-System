@@ -9,9 +9,13 @@ import {
 } from 'react-router-dom'
 
 import EmployeeComponent from './component/EmployeeComponent'
+import EmployeeDetail from './component/EmployeeDetail'
+import ProfilePage from './component/ProfilePage'
 import Login from './component/Login'
 import ProtectedRoute from './component/ProtectedRoute'
 import Dashboard from './component/Dashboard'
+import DepartmentsPage from './component/DepartmentsPage'
+import LeavePage from './component/LeavePage'
 import { AuthProvider } from './context/AuthContext'
 
 function AppRoutes() {
@@ -55,6 +59,24 @@ function AppRoutes() {
         />
 
         <Route
+          path="/departments"
+          element={
+            <ProtectedRoute roles={['ADMIN', 'HR']}>
+              <DepartmentsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/leave"
+          element={
+            <ProtectedRoute>
+              <LeavePage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/add-employee"
           element={
             <ProtectedRoute roles={['ADMIN', 'HR']}>
@@ -68,6 +90,24 @@ function AppRoutes() {
           element={
             <ProtectedRoute roles={['ADMIN', 'HR']}>
               <EmployeeComponent />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/employees/:id"
+          element={
+            <ProtectedRoute roles={['ADMIN', 'HR']}>
+              <EmployeeDetail />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
             </ProtectedRoute>
           }
         />

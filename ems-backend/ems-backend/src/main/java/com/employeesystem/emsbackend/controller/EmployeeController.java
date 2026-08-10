@@ -2,6 +2,7 @@ package com.employeesystem.emsbackend.controller;
 
 import com.employeesystem.emsbackend.dto.EmployeeRequestDTO;
 import com.employeesystem.emsbackend.dto.EmployeeResponseDTO;
+import com.employeesystem.emsbackend.dto.EmployeeSelfUpdateDTO;
 import com.employeesystem.emsbackend.dto.PageResponseDTO;
 import com.employeesystem.emsbackend.entity.User;
 import com.employeesystem.emsbackend.exception.ResourceNotFoundException;
@@ -58,6 +59,19 @@ public class EmployeeController {
             throw new ResourceNotFoundException("This account is not linked to an employee record");
         }
         return ResponseEntity.ok(employeeService.findEmployeeById(currentUser.getEmployee().getId()));
+    }
+
+    // Deliberately uses EmployeeSelfUpdateDTO, not EmployeeRequestDTO — that
+    // narrower field set (no salary/department/status/etc.) is what
+    // actually prevents an employee from editing their own compensation
+    // or role through this endpoint, not just a UI choice to hide fields.
+    @PutMapping("/me")
+    public ResponseEntity<EmployeeResponseDTO> updateMyProfile(@AuthenticationPrincipal User currentUser,
+                                                                 @Valid @RequestBody EmployeeSelfUpdateDTO request) {
+        if (currentUser.getEmployee() == null) {
+            throw new ResourceNotFoundException("This account is not linked to an employee record");
+        }
+        return ResponseEntity.ok(employeeService.updateOwnProfile(currentUser.getEmployee().getId(), request));
     }
 
     @PostMapping

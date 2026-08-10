@@ -20,7 +20,15 @@ public class JwtUtil {
     @Value("${app.jwt.secret:this-is-a-local-dev-only-secret-change-me-before-deploying-anywhere-real}")
     private String jwtSecret;
 
-    @Value("${app.jwt.expiration-ms:86400000}") // 24h default
+    // Shorter now that a refresh-token flow exists to renew this — an
+    // access token is meant to be short-lived precisely because it can't
+    // be revoked before it expires. Default is 1 hour rather than the
+    // more textbook 15 minutes, as a deliberate safety margin: this app's
+    // frontend refresh flow hasn't been exercised against a live backend
+    // in this environment, so a longer window reduces how often it needs
+    // to fire during real use while still being a real improvement on the
+    // previous 24-hour token.
+    @Value("${app.jwt.expiration-ms:3600000}") // 1h default
     private long jwtExpirationMs;
 
     private SecretKey getSigningKey() {

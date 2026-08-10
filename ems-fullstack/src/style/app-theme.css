@@ -1,0 +1,203 @@
+/* ==========================================================================
+   PeopleHub shared theme — extracted from Login.jsx / Header.jsx styling
+   so the rest of the app (Employees, Departments, Leave, Dashboard) shares
+   the same palette and language instead of drifting back to plain
+   Bootstrap defaults. Classes are prefixed "ph-" so nothing collides with
+   Bootstrap's own class names (still in use for alerts/spinners/utilities).
+   ========================================================================== */
+
+:root {
+  --ph-blue: #2563eb;
+  --ph-indigo: #4f46e5;
+  --ph-violet: #7c3aed;
+  --ph-blue-light: #93c5fd;
+  --ph-blue-lightest: #dbeafe;
+  --ph-blue-bg: #eff6ff;
+
+  --ph-dark: #0f172a;
+  --ph-muted: #64748b;
+  --ph-muted-2: #475569;
+
+  --ph-border: #dbe4ef;
+  --ph-border-2: #eef2f7;
+  --ph-bg: #f5f7fb;
+  --ph-bg-2: #f8fafc;
+
+  --ph-success: #16a34a;
+  --ph-success-bg: #dcfce7;
+  --ph-warning: #d97706;
+  --ph-warning-bg: #fef3c7;
+  --ph-danger: #ef4444;
+  --ph-danger-hover: #dc2626;
+  --ph-danger-bg: #fee2e2;
+
+  --ph-gradient: linear-gradient(135deg, #2563eb, #4f46e5);
+
+  --ph-radius-sm: 12px;
+  --ph-radius-md: 14px;
+  --ph-radius-lg: 22px;
+}
+
+/* ---------- Layout ---------- */
+.ph-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 30px 35px;
+}
+
+.ph-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.ph-page-header h2 {
+  font-weight: 700;
+  color: var(--ph-dark);
+  margin: 0;
+}
+
+/* ---------- Card ---------- */
+.ph-card {
+  background: #fff;
+  border-radius: var(--ph-radius-lg);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  padding: 28px;
+}
+
+/* ---------- Buttons ---------- */
+.ph-btn {
+  border: none;
+  border-radius: var(--ph-radius-sm);
+  padding: 11px 20px;
+  font-weight: 600;
+  font-size: 14.5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: 0.3s ease;
+}
+.ph-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.ph-btn-primary {
+  background: var(--ph-gradient);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+}
+.ph-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.35);
+}
+
+.ph-btn-danger {
+  background: var(--ph-danger);
+  color: #fff;
+}
+.ph-btn-danger:hover:not(:disabled) { background: var(--ph-danger-hover); }
+
+.ph-btn-ghost {
+  background: var(--ph-blue-bg);
+  color: var(--ph-blue);
+}
+.ph-btn-ghost:hover:not(:disabled) { background: var(--ph-blue); color: #fff; }
+
+.ph-btn-outline {
+  background: transparent;
+  color: var(--ph-blue);
+  border: 1.5px solid var(--ph-blue);
+}
+.ph-btn-outline:hover:not(:disabled) { background: var(--ph-blue-bg); }
+
+/* ---------- Inputs ---------- */
+.ph-input,
+.ph-select {
+  width: 100%;
+  height: 48px;
+  border: 1px solid var(--ph-border);
+  border-radius: var(--ph-radius-sm);
+  padding: 0 16px;
+  font-family: inherit;
+  font-size: 14.5px;
+  color: var(--ph-dark);
+  outline: none;
+  transition: 0.3s;
+  background: #fff;
+}
+.ph-input:focus,
+.ph-select:focus {
+  border-color: var(--ph-blue);
+  box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
+}
+.ph-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ph-muted-2);
+  margin-bottom: 6px;
+}
+
+/* ---------- Badges ---------- */
+.ph-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.ph-badge-role-admin { background: var(--ph-gradient); color: #fff; }
+.ph-badge-role-hr { background: var(--ph-blue-lightest); color: var(--ph-indigo); }
+.ph-badge-role-employee { background: var(--ph-border-2); color: var(--ph-muted-2); }
+
+.ph-badge-pending { background: var(--ph-warning-bg); color: var(--ph-warning); }
+.ph-badge-approved { background: var(--ph-success-bg); color: var(--ph-success); }
+.ph-badge-rejected { background: var(--ph-danger-bg); color: var(--ph-danger); }
+.ph-badge-cancelled { background: var(--ph-border-2); color: var(--ph-muted); }
+
+/* ---------- Table ---------- */
+.ph-table-wrap {
+  background: #fff;
+  border-radius: var(--ph-radius-lg);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+.ph-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.ph-table th {
+  background: var(--ph-bg-2);
+  color: var(--ph-muted-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: left;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--ph-border-2);
+}
+.ph-table td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--ph-border-2);
+  font-size: 14.5px;
+  color: var(--ph-dark);
+}
+.ph-table tr:last-child td { border-bottom: none; }
+.ph-table tr:hover td { background: var(--ph-bg-2); }
+
+.ph-empty { text-align: center; padding: 50px 20px; color: var(--ph-muted); }
+
+.ph-chain { color: var(--ph-blue-light); font-weight: 700; margin-right: 4px; }
+
+/* ---------- Alerts (complement Bootstrap's, same rounded language) ---------- */
+.ph-alert {
+  border-radius: var(--ph-radius-sm);
+  padding: 12px 16px;
+  font-size: 14px;
+}
+.ph-alert-error { background: var(--ph-danger-bg); color: #b91c1c; }

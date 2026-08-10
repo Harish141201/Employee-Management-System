@@ -2,14 +2,18 @@ package com.employeesystem.emsbackend.service;
 
 import com.employeesystem.emsbackend.dto.EmployeeRequestDTO;
 import com.employeesystem.emsbackend.dto.EmployeeResponseDTO;
+import com.employeesystem.emsbackend.dto.EmployeeSelfUpdateDTO;
 import com.employeesystem.emsbackend.dto.PageResponseDTO;
 import com.employeesystem.emsbackend.entity.Department;
 import com.employeesystem.emsbackend.entity.Employee;
 import com.employeesystem.emsbackend.exception.DuplicateResourceException;
+import com.employeesystem.emsbackend.exception.ResourceInUseException;
 import com.employeesystem.emsbackend.exception.ResourceNotFoundException;
 import com.employeesystem.emsbackend.mapper.EmployeeMapper;
 import com.employeesystem.emsbackend.repository.DepartmentRepository;
 import com.employeesystem.emsbackend.repository.EmployeeRepository;
+import com.employeesystem.emsbackend.repository.LeaveRequestRepository;
+import com.employeesystem.emsbackend.repository.UserRepository;
 import com.employeesystem.emsbackend.specification.EmployeeSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -17,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -25,6 +30,8 @@ public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
+    private final UserRepository userRepository;
+    private final LeaveRequestRepository leaveRequestRepository;
     private final EmployeeMapper employeeMapper;
 
     @Transactional
@@ -74,10 +81,50 @@ public class EmployeeService {
     }
 
     @Transactional
+    public EmployeeResponseDTO updateOwnProfile(Long employeeId, EmployeeSelfUpdateDTO request) {
+        Employee employee = getEmployeeOrThrow(employeeId);
+
+        employee.setPhone(request.getPhone());
+        employee.setAddress(request.getAddress());
+        employee.setDateOfBirth(request.getDateOfBirth());
+        employee.setGender(request.getGender());
+        employee.setBloodGroup(request.getBloodGroup());
+        employee.setEmergencyContactName(request.getEmergencyContactName());
+        employee.setEmergencyContactPhone(request.getEmergencyContactPhone());
+
+        Employee saved = employeeRepository.save(employee);
+        return employeeMapper.toResponseDto(saved);
+    }
+
+    @Transactional
     public void deleteEmployeeById(Long id) {
         if (!employeeRepository.existsById(id)) {
             throw new ResourceNotFoundException("Employee with ID " + id + " not found");
         }
+
+        List<String> reasons = new ArrayList<>();
+
+        long directReports = employeeRepository.countByManagerId(id);
+        if (directReports > 0) {
+            reasons.add(directReports + " direct report" + (directReports == 1 ? "" : "s"));
+        }
+
+        long leaveRecords = leaveRequestRepository.countByEmployeeId(id);
+        if (leaveRecords > 0) {
+            reasons.add(leaveRecords + " leave request" + (leaveRecords == 1 ? "" : "s"));
+        }
+
+        if (userRepository.existsByEmployeeId(id)) {
+            reasons.add("a linked login account");
+        }
+
+        if (!reasons.isEmpty()) {
+            throw new ResourceInUseException(
+                    "Cannot delete this employee: they have " + String.join(", ", reasons)
+                            + ". Reassign or remove those first, or set their status to Terminated instead of deleting."
+            );
+        }
+
         employeeRepository.deleteById(id);
     }
 

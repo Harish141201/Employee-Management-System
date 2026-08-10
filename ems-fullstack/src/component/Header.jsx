@@ -8,8 +8,8 @@ function Header() {
 
     const navigate = useNavigate();
 
-    function handleLogout() {
-        logout();
+    async function handleLogout() {
+        await logout();
         navigate("/login");
     }
 
@@ -64,23 +64,45 @@ function Header() {
 
                         )}
 
-                        <div className="user-info">
+                        {hasRole("ADMIN", "HR") && (
+
+                            <Link
+                                to="/departments"
+                                className="dashboard-btn"
+                            >
+                                <i className="bi bi-diagram-3-fill"></i>
+
+                                Departments
+                            </Link>
+
+                        )}
+
+                        <Link
+                            to="/leave"
+                            className="dashboard-btn"
+                        >
+                            <i className="bi bi-calendar-check-fill"></i>
+
+                            Leave
+                        </Link>
+
+                        <Link to="/profile" className="user-info" style={{ textDecoration: 'none', color: 'inherit' }}>
 
                             <div className="avatar">
 
-                                {user.username.charAt(0).toUpperCase()}
+                                {(user.employeeName || user.username).charAt(0).toUpperCase()}
 
                             </div>
 
                             <div>
 
-                                <h6>{user.username}</h6>
+                                <h6>{user.employeeName || user.username}</h6>
 
                                 <small>{user.role}</small>
 
                             </div>
 
-                        </div>
+                        </Link>
 
                         <button
                             className="logout-btn"

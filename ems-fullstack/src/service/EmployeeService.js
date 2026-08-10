@@ -4,6 +4,8 @@ export const listEmployees = (params) => axiosClient.get("/emp", { params });
 
 export const getMyProfile = () => axiosClient.get("/emp/me");
 
+export const updateMyProfile = (profile) => axiosClient.put("/emp/me", profile);
+
 export const savedEmployee = (employee) => axiosClient.post("/emp", employee);
 
 export const editEmployee = (employeeId) => axiosClient.get(`/emp/${employeeId}`);

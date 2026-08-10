@@ -16,7 +16,7 @@ function Login() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const redirectTo = location.state?.from?.pathname || "/";
+    const explicitDestination = location.state?.from?.pathname;
 
     async function handleSubmit(e) {
 
@@ -28,9 +28,14 @@ function Login() {
 
         try {
 
-            await login(username, password);
-
-            navigate(redirectTo, { replace: true });
+            const loggedInUser = await login(username, password);
+            // If the user was bounced to /login while trying to reach a
+            // specific page, send them back there. Otherwise, Admin/HR land
+            // on the Dashboard by default rather than the raw employee
+            // table — a plain data grid isn't the first thing a SaaS
+            // product should show after sign-in.
+            const defaultLanding = ["ADMIN", "HR"].includes(loggedInUser.role) ? "/dashboard" : "/";
+            navigate(explicitDestination || defaultLanding, { replace: true });
 
         } catch (err) {
 

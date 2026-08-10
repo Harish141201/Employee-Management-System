@@ -5,6 +5,7 @@ import com.employeesystem.emsbackend.security.JwtAuthenticationEntryPoint;
 import com.employeesystem.emsbackend.security.JwtAuthenticationFilter;
 import com.employeesystem.emsbackend.security.RestAccessDeniedHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,6 +23,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -34,6 +36,12 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
+
+    // Comma-separated list, so both local dev and the deployed Render
+    // frontend work out of the box without editing code — override via
+    // the CORS_ALLOWED_ORIGINS env var if the Render URL ever changes.
+    @Value("${app.cors.allowed-origins:http://localhost:5173,https://employee-management-system-1-0ivg.onrender.com}")
+    private String allowedOrigins;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -57,10 +65,9 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOriginPatterns(List.of(
-                "http://localhost:5173",
-                "https://employee-management-system-1-0ivg.onrender.com"
-        ));
+        configuration.setAllowedOriginPatterns(Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .toList());
 
         configuration.setAllowedMethods(List.of(
                 "GET",
