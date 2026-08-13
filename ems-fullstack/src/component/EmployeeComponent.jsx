@@ -3,6 +3,7 @@ import { savedEmployee, updateDataEmployee, editEmployee, listEmployees } from '
 import { listDepartments } from '../service/DepartmentService'
 import { registerAccount } from '../service/AuthService'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useToast } from '../context/useToast'
 
 const LOGIN_ROLES = ['EMPLOYEE', 'HR', 'ADMIN']
 const GENDERS = ['MALE', 'FEMALE', 'OTHER']
@@ -12,8 +13,8 @@ const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
 
 function FormSection({ title, children }) {
     return (
-        <div className="mb-4">
-            <h6 style={{ fontWeight: 700, color: 'var(--ph-blue)', textTransform: 'uppercase', fontSize: 12.5, letterSpacing: '0.04em', marginBottom: 14 }}>
+        <div className="employee-form-section">
+            <h6 className="employee-form-section-title">
                 {title}
             </h6>
             <div className="row g-3">
@@ -24,6 +25,7 @@ function FormSection({ title, children }) {
 }
 
 function EmployeeComponent() {
+    const { showToast } = useToast()
     const [firstName, setFirstName] = useState('')
     const [lastName, setLastName] = useState('')
     const [email, setEmail] = useState('')
@@ -130,7 +132,8 @@ function EmployeeComponent() {
         try {
             if (isEditing) {
                 await updateDataEmployee(id, employee)
-                navigate('/')
+                showToast('Employee updated successfully')
+                navigate('/employees/' + id)
                 return
             }
 
@@ -146,11 +149,12 @@ function EmployeeComponent() {
                     })
                 } catch (loginErr) {
                     const msg = loginErr?.response?.data?.message || 'Could not create the login account.'
-                    window.alert(`Employee created successfully, but the login account failed: ${msg}`)
+                    showToast(`Employee created, but login setup failed: ${msg}`, 'warning')
                 }
             }
 
-            navigate('/')
+            showToast('Employee created successfully')
+            navigate('/emplist')
         } catch (error) {
             setErrors(extractErrorMessages(error))
         } finally {
@@ -161,12 +165,12 @@ function EmployeeComponent() {
     const managerOptions = potentialManagers.filter(m => String(m.id) !== String(id))
 
     return (
-        <div className="ph-page" style={{ maxWidth: 760 }}>
+        <div className="ph-page employee-form-page">
             <div className="ph-page-header">
-                <h2>{isEditing ? 'Update Employee' : 'Add Employee'}</h2>
+                <div><p className="page-kicker">People directory</p><h2>{isEditing ? 'Update employee' : 'Add employee'}</h2><p className="page-subtitle">{isEditing ? 'Keep this employee record accurate and up to date.' : 'Create a complete employee record for your organization.'}</p></div>
             </div>
 
-            <div className="ph-card">
+            <div className="ph-card employee-form-card">
                 {errors.length > 0 && (
                     <div className="alert alert-danger ph-alert mb-3" role="alert">
                         <ul className="mb-0 ps-3">
@@ -271,7 +275,7 @@ function EmployeeComponent() {
                     </FormSection>
 
                     {!isEditing && (
-                        <div className="mb-4" style={{ background: 'var(--ph-bg-2)', borderRadius: 'var(--ph-radius-sm)', padding: 16 }}>
+                        <div className="mb-4 employee-login-box">
                             <div className="form-check">
                                 <input
                                     type="checkbox"

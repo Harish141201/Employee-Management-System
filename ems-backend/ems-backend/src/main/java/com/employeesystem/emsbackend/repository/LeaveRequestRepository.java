@@ -22,6 +22,21 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
 
     long countByStatus(LeaveStatus status);
 
+    @Query("SELECT COUNT(lr) FROM LeaveRequest lr WHERE lr.status = :status " +
+           "AND lr.startDate <= :date AND lr.endDate >= :date")
+    long countActiveOnDate(@Param("status") LeaveStatus status, @Param("date") LocalDate date);
+
+    @Query("SELECT lr FROM LeaveRequest lr JOIN FETCH lr.employee " +
+           "WHERE lr.status = :status AND lr.startDate <= :date AND lr.endDate >= :date " +
+           "ORDER BY lr.endDate ASC, lr.employee.firstName ASC")
+    List<LeaveRequest> findActiveOnDate(@Param("status") LeaveStatus status, @Param("date") LocalDate date);
+
+    @Query("SELECT COUNT(lr) FROM LeaveRequest lr WHERE lr.employee.department.id = :departmentId " +
+           "AND lr.status = :status AND lr.startDate <= :date AND lr.endDate >= :date")
+    long countActiveOnDateByDepartment(@Param("departmentId") Long departmentId,
+                                       @Param("status") LeaveStatus status,
+                                       @Param("date") LocalDate date);
+
     long countByEmployeeId(Long employeeId);
 
     // Standard interval-overlap check: an existing request overlaps

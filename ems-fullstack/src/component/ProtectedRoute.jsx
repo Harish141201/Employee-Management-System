@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
+import { ForbiddenPage } from './ErrorPages'
 
 /**
  * Wraps a route. Redirects to /login if not authenticated.
@@ -16,7 +17,7 @@ function ProtectedRoute({ children, roles }) {
     }
 
     if (roles && !hasRole(...roles)) {
-        return <Navigate to="/" replace />
+        return <ForbiddenPage />
     }
 
     return children

@@ -6,17 +6,24 @@ import com.employeesystem.emsbackend.entity.Department;
 import com.employeesystem.emsbackend.exception.DuplicateResourceException;
 import com.employeesystem.emsbackend.exception.ResourceNotFoundException;
 import com.employeesystem.emsbackend.repository.DepartmentRepository;
+import com.employeesystem.emsbackend.repository.EmployeeRepository;
+import com.employeesystem.emsbackend.repository.LeaveRequestRepository;
+import com.employeesystem.emsbackend.entity.EmployeeStatus;
+import com.employeesystem.emsbackend.entity.LeaveStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
 public class DepartmentService {
 
     private final DepartmentRepository departmentRepository;
+    private final EmployeeRepository employeeRepository;
+    private final LeaveRequestRepository leaveRequestRepository;
 
     @Transactional
     public DepartmentResponseDTO createDepartment(DepartmentRequestDTO request) {
@@ -61,6 +68,11 @@ public class DepartmentService {
     }
 
     private DepartmentResponseDTO toResponse(Department department) {
-        return new DepartmentResponseDTO(department.getId(), department.getName(), department.getDescription());
+        long employeeCount = employeeRepository.countByDepartmentId(department.getId());
+        long activeEmployeeCount = employeeRepository.countByDepartmentIdAndStatus(department.getId(), EmployeeStatus.ACTIVE);
+        long employeesOnLeave = leaveRequestRepository.countActiveOnDateByDepartment(
+                department.getId(), LeaveStatus.APPROVED, LocalDate.now());
+        return new DepartmentResponseDTO(department.getId(), department.getName(), department.getDescription(),
+                employeeCount, activeEmployeeCount, employeesOnLeave);
     }
 }

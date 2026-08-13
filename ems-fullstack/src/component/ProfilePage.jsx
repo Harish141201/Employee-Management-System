@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getMyProfile, updateMyProfile } from '../service/EmployeeService'
 import { changePassword } from '../service/AuthService'
+import { useToast } from '../context/useToast'
 
 const GENDERS = ['MALE', 'FEMALE', 'OTHER']
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
@@ -15,6 +16,7 @@ function ReadOnlyField({ label, value }) {
 }
 
 function ProfilePage() {
+    const { showToast } = useToast()
     const [profile, setProfile] = useState(null)
     const [loadError, setLoadError] = useState('')
 
@@ -68,6 +70,7 @@ function ProfilePage() {
         }).then((response) => {
             setProfile(response.data)
             setProfileSuccess('Profile updated.')
+            showToast('Profile updated successfully')
         }).catch((err) => {
             setProfileError(err?.response?.data?.message || 'Could not update your profile.')
         }).finally(() => setSavingProfile(false))
@@ -86,6 +89,7 @@ function ProfilePage() {
         setSavingPassword(true)
         changePassword({ currentPassword, newPassword }).then(() => {
             setPasswordSuccess('Password changed successfully.')
+            showToast('Password changed successfully')
             setCurrentPassword(''); setNewPassword(''); setConfirmPassword('')
         }).catch((err) => {
             setPasswordError(err?.response?.data?.message || 'Could not change your password.')
@@ -101,11 +105,11 @@ function ProfilePage() {
     }
 
     return (
-        <div className="ph-page" style={{ maxWidth: 760 }}>
-            <div className="ph-page-header"><h2>My Profile</h2></div>
+        <div className="ph-page profile-page">
+            <div className="ph-page-header"><div><p className="page-kicker">Account settings</p><h2>My profile</h2><p className="page-subtitle">Keep your personal details current and your account secure.</p></div></div>
 
-            <div className="ph-card mb-4">
-                <div className="d-flex align-items-center gap-3 mb-4">
+            <div className="ph-card profile-account-hero mb-4">
+                <div className="profile-account-identity">
                     <div style={{
                         width: 60, height: 60, borderRadius: '50%',
                         background: 'var(--ph-gradient)', color: '#fff',
@@ -114,13 +118,14 @@ function ProfilePage() {
                     }}>
                         {profile.firstName.charAt(0).toUpperCase()}
                     </div>
-                    <div>
+                    <div className="profile-account-copy">
+                        <p className="dashboard-panel__eyebrow">Signed-in account</p>
                         <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--ph-dark)' }}>{profile.firstName} {profile.lastName}</div>
                         <div className="text-muted small">{profile.designation || 'No designation set'}{profile.departmentName ? ` · ${profile.departmentName}` : ''}</div>
-                    </div>
+                    </div><span className="ph-badge ph-badge-role-employee">{profile.status || 'ACTIVE'}</span>
                 </div>
 
-                <h6 style={{ fontWeight: 700, color: 'var(--ph-blue)', textTransform: 'uppercase', fontSize: 12.5, letterSpacing: '0.04em', marginBottom: 14 }}>
+                <h6 className="profile-card-kicker">
                     Employment Details <span className="text-muted" style={{ textTransform: 'none', fontWeight: 400 }}>(managed by HR/Admin)</span>
                 </h6>
                 <div className="row g-3 mb-2">
@@ -133,10 +138,8 @@ function ProfilePage() {
                 </div>
             </div>
 
-            <div className="ph-card mb-4">
-                <h6 style={{ fontWeight: 700, color: 'var(--ph-blue)', textTransform: 'uppercase', fontSize: 12.5, letterSpacing: '0.04em', marginBottom: 14 }}>
-                    Personal & Contact Information
-                </h6>
+            <div className="ph-card profile-edit-card mb-4">
+                <div className="profile-section-heading"><div><p className="dashboard-panel__eyebrow">Self-service</p><h2>Personal & contact information</h2></div><i className="bi bi-person-vcard"></i></div>
                 {profileError && <div className="alert alert-danger ph-alert mb-3">{profileError}</div>}
                 {profileSuccess && <div className="alert alert-success mb-3" style={{ borderRadius: 'var(--ph-radius-sm)' }}>{profileSuccess}</div>}
                 <form onSubmit={handleSaveProfile}>
@@ -182,10 +185,8 @@ function ProfilePage() {
                 </form>
             </div>
 
-            <div className="ph-card">
-                <h6 style={{ fontWeight: 700, color: 'var(--ph-blue)', textTransform: 'uppercase', fontSize: 12.5, letterSpacing: '0.04em', marginBottom: 14 }}>
-                    Change Password
-                </h6>
+            <div className="ph-card profile-password-card">
+                <div className="profile-section-heading"><div><p className="dashboard-panel__eyebrow">Security</p><h2>Change password</h2></div><i className="bi bi-shield-lock"></i></div>
                 {passwordError && <div className="alert alert-danger ph-alert mb-3">{passwordError}</div>}
                 {passwordSuccess && <div className="alert alert-success mb-3" style={{ borderRadius: 'var(--ph-radius-sm)' }}>{passwordSuccess}</div>}
                 <form onSubmit={handleChangePassword}>
@@ -197,6 +198,7 @@ function ProfilePage() {
                         <div className="col-md-4">
                             <label className="ph-label">New Password</label>
                             <input type="password" className="ph-input" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={8} />
+                            <small className={`password-strength password-strength--${newPassword.length >= 12 ? 'strong' : newPassword.length >= 8 ? 'good' : 'weak'}`}>{newPassword ? (newPassword.length >= 12 ? 'Strong password' : newPassword.length >= 8 ? 'Good password' : 'Use at least 8 characters') : 'Use at least 8 characters'}</small>
                         </div>
                         <div className="col-md-4">
                             <label className="ph-label">Confirm New Password</label>

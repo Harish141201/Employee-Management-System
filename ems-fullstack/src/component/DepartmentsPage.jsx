@@ -1,103 +1,56 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { listDepartments, createDepartment, deleteDepartment } from '../service/DepartmentService'
 import { useAuth } from '../context/useAuth'
+import { useNavigate } from 'react-router-dom'
+import { useToast } from '../context/useToast'
+import ConfirmModal from './ConfirmModal'
 
 function DepartmentsPage() {
     const { hasRole } = useAuth()
     const canDelete = hasRole('ADMIN')
-
+    const navigate = useNavigate()
+    const { showToast } = useToast()
     const [departments, setDepartments] = useState([])
     const [name, setName] = useState('')
     const [description, setDescription] = useState('')
+    const [query, setQuery] = useState('')
     const [error, setError] = useState('')
+    const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
+    const [deleteTarget, setDeleteTarget] = useState(null)
+
+    function refresh() {
+        setLoading(true)
+        listDepartments().then(response => setDepartments(response.data)).catch(() => setError('Could not load departments.')).finally(() => setLoading(false))
+    }
 
     useEffect(() => { refresh() }, [])
 
-    function refresh() {
-        listDepartments().then((response) => setDepartments(response.data)).catch(() => {
-            setError('Could not load departments.')
-        })
-    }
-
-    function handleCreate(e) {
-        e.preventDefault()
+    function handleCreate(event) {
+        event.preventDefault()
         setError('')
-        if (!name.trim()) {
-            setError('Department name is required.')
-            return
-        }
+        if (!name.trim()) return setError('Department name is required.')
         setSubmitting(true)
-        createDepartment({ name, description }).then(() => {
-            setName('')
-            setDescription('')
-            refresh()
-        }).catch((err) => {
-            setError(err?.response?.data?.message || 'Could not create department.')
-        }).finally(() => setSubmitting(false))
+        createDepartment({ name: name.trim(), description: description.trim() }).then(() => {
+            setName(''); setDescription(''); refresh(); showToast('Department created successfully')
+        }).catch(err => setError(err?.response?.data?.message || 'Could not create department.')).finally(() => setSubmitting(false))
     }
 
     function handleDelete(id) {
-        if (!window.confirm('Delete this department? Employees assigned to it will keep their record but lose the department link.')) return
-        deleteDepartment(id).then(refresh).catch(() => {
-            setError('Could not delete this department.')
-        })
+        deleteDepartment(id).then(() => { refresh(); showToast('Department deleted successfully') }).catch(() => { setError('Could not delete this department.'); showToast('Unable to delete department', 'error') })
+        setDeleteTarget(null)
     }
 
-    return (
-        <div className="ph-page">
-            <div className="ph-page-header"><h2>Departments</h2></div>
+    const filteredDepartments = useMemo(() => departments.filter(department => `${department.name} ${department.description || ''}`.toLowerCase().includes(query.toLowerCase())), [departments, query])
 
-            {error && <div className="alert alert-danger ph-alert mb-3">{error}</div>}
-
-            <div className="ph-card mb-4">
-                <h5 className="mb-3" style={{ fontWeight: 700, color: 'var(--ph-dark)' }}>
-                    <i className="bi bi-plus-circle-fill me-2" style={{ color: 'var(--ph-blue)' }}></i>
-                    Add a Department
-                </h5>
-                <form className="d-flex gap-2 flex-wrap align-items-end" onSubmit={handleCreate}>
-                    <div style={{ flex: '1 1 180px' }}>
-                        <label className="ph-label">Name</label>
-                        <input className="ph-input" value={name} onChange={(e) => setName(e.target.value)} />
-                    </div>
-                    <div style={{ flex: '2 1 260px' }}>
-                        <label className="ph-label">Description (optional)</label>
-                        <input className="ph-input" value={description} onChange={(e) => setDescription(e.target.value)} />
-                    </div>
-                    <button type="submit" className="ph-btn ph-btn-primary" disabled={submitting}>
-                        {submitting ? 'Adding...' : 'Add Department'}
-                    </button>
-                </form>
-            </div>
-
-            <div className="ph-table-wrap">
-                {departments.length === 0 ? (
-                    <div className="ph-empty">No departments yet — add your first one above.</div>
-                ) : (
-                    <table className="ph-table">
-                        <thead>
-                            <tr><th>Name</th><th>Description</th><th></th></tr>
-                        </thead>
-                        <tbody>
-                            {departments.map(dept => (
-                                <tr key={dept.id}>
-                                    <td style={{ fontWeight: 600 }}>{dept.name}</td>
-                                    <td className="text-muted">{dept.description || '—'}</td>
-                                    <td className="text-end">
-                                        {canDelete && (
-                                            <button className="ph-btn" style={{ background: 'var(--ph-danger-bg)', color: 'var(--ph-danger)' }} onClick={() => handleDelete(dept.id)}>
-                                                <i className="bi bi-trash-fill"></i>
-                                            </button>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
-            </div>
-        </div>
-    )
+    return <div className="ph-page department-page">
+        <div className="ph-page-header department-header"><div><p className="page-kicker">Organization structure</p><h2>Departments</h2><p className="page-subtitle">Create and organize the teams that power your workforce.</p></div><div className="department-header-stat"><strong>{departments.length}</strong><span>{departments.length === 1 ? 'department' : 'departments'} configured</span></div></div>
+        {error && <div className="alert alert-danger ph-alert mb-3">{error}</div>}
+        <section className="department-create ph-card"><div className="department-create-heading"><div className="department-create-icon"><i className="bi bi-plus-lg"></i></div><div><h2>Add a department</h2><p>Give your team a clear home in PeopleHub.</p></div></div><form className="department-form" onSubmit={handleCreate}><div><label className="ph-label" htmlFor="department-name">Department name</label><input id="department-name" className="ph-input" value={name} onChange={event => setName(event.target.value)} placeholder="e.g. Product & Design" /></div><div><label className="ph-label" htmlFor="department-description">Description <span>(optional)</span></label><input id="department-description" className="ph-input" value={description} onChange={event => setDescription(event.target.value)} placeholder="What does this team own?" /></div><button type="submit" className="ph-btn ph-btn-primary" disabled={submitting}><i className="bi bi-plus-circle"></i>{submitting ? 'Adding…' : 'Add department'}</button></form></section>
+        <div className="department-list-header"><div><p className="dashboard-panel__eyebrow">Your organization</p><h2>All departments</h2></div><div className="department-search"><i className="bi bi-search"></i><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search departments" aria-label="Search departments" /></div></div>
+        {loading ? <div className="department-grid"><div className="department-skeleton"></div><div className="department-skeleton"></div><div className="department-skeleton"></div></div> : filteredDepartments.length === 0 ? <div className="ph-card ph-empty department-empty"><i className="bi bi-diagram-3"></i><p>{departments.length ? 'No departments match your search.' : 'No departments yet.'}</p><small>{departments.length ? 'Try a different search term.' : 'Create your first department above to get started.'}</small></div> : <div className="department-grid">{filteredDepartments.map(department => <article className="department-card" key={department.id} onClick={() => navigate(`/departments/${department.id}`)}><div className="department-card-top"><div className="department-card-icon">{department.name.charAt(0).toUpperCase()}</div>{canDelete && <button className="department-delete" onClick={event => { event.stopPropagation(); setDeleteTarget(department) }} aria-label={`Delete ${department.name}`}><i className="bi bi-trash3"></i></button>}</div><h3>{department.name}</h3><p>{department.description || 'No description added for this department.'}</p><div className="department-card-metrics"><span><i className="bi bi-people-fill"></i>{department.employeeCount} total</span><span><i className="bi bi-person-check-fill"></i>{department.activeEmployeeCount} active</span>{department.employeesOnLeave > 0 && <span><i className="bi bi-airplane-fill"></i>{department.employeesOnLeave} away</span>}</div><div className="department-card-footer"><span><i className="bi bi-people"></i> View employee roster</span><small><i className="bi bi-arrow-right"></i></small></div></article>)}</div>}
+        <ConfirmModal open={Boolean(deleteTarget)} title="Delete department?" message={deleteTarget ? `Employees assigned to ${deleteTarget.name} will lose their department link.` : ''} confirmLabel="Delete department" danger onCancel={() => setDeleteTarget(null)} onConfirm={() => handleDelete(deleteTarget.id)} />
+    </div>
 }
 
 export default DepartmentsPage

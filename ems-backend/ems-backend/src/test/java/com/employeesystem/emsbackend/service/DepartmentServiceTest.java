@@ -5,6 +5,8 @@ import com.employeesystem.emsbackend.entity.Department;
 import com.employeesystem.emsbackend.exception.DuplicateResourceException;
 import com.employeesystem.emsbackend.exception.ResourceNotFoundException;
 import com.employeesystem.emsbackend.repository.DepartmentRepository;
+import com.employeesystem.emsbackend.repository.EmployeeRepository;
+import com.employeesystem.emsbackend.repository.LeaveRequestRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,11 +25,17 @@ class DepartmentServiceTest {
     @Mock
     private DepartmentRepository departmentRepository;
 
+    @Mock
+    private EmployeeRepository employeeRepository;
+
+    @Mock
+    private LeaveRequestRepository leaveRequestRepository;
+
     private DepartmentService departmentService;
 
     @BeforeEach
     void setUp() {
-        departmentService = new DepartmentService(departmentRepository);
+        departmentService = new DepartmentService(departmentRepository, employeeRepository, leaveRequestRepository);
     }
 
     @Test

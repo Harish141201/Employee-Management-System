@@ -43,6 +43,9 @@ public class User implements UserDetails {
     @JoinColumn(name = "employee_id", referencedColumnName = "id", unique = true)
     private Employee employee;
 
+    @Column(nullable = false)
+    private boolean enabled = true;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
@@ -63,8 +66,4 @@ public class User implements UserDetails {
         return true;
     }
 
-    @Override
-    public boolean isEnabled() {
-        return true;
-    }
 }

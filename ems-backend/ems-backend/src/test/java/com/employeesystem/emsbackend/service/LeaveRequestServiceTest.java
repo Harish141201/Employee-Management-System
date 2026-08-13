@@ -27,12 +27,13 @@ class LeaveRequestServiceTest {
 
     @Mock private LeaveRequestRepository leaveRequestRepository;
     @Mock private EmployeeRepository employeeRepository;
+    @Mock private NotificationService notificationService;
 
     private LeaveRequestService leaveRequestService;
 
     @BeforeEach
     void setUp() {
-        leaveRequestService = new LeaveRequestService(leaveRequestRepository, employeeRepository, new LeaveRequestMapper());
+        leaveRequestService = new LeaveRequestService(leaveRequestRepository, employeeRepository, new LeaveRequestMapper(), notificationService);
     }
 
     private Employee employee(long id) {

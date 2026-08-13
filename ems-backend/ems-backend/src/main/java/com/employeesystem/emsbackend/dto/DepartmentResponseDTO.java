@@ -9,4 +9,7 @@ public class DepartmentResponseDTO {
     private Long id;
     private String name;
     private String description;
+    private long employeeCount;
+    private long activeEmployeeCount;
+    private long employeesOnLeave;
 }

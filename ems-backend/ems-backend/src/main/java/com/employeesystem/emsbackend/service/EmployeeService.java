@@ -6,6 +6,7 @@ import com.employeesystem.emsbackend.dto.EmployeeSelfUpdateDTO;
 import com.employeesystem.emsbackend.dto.PageResponseDTO;
 import com.employeesystem.emsbackend.entity.Department;
 import com.employeesystem.emsbackend.entity.Employee;
+import com.employeesystem.emsbackend.entity.EmployeeStatus;
 import com.employeesystem.emsbackend.exception.DuplicateResourceException;
 import com.employeesystem.emsbackend.exception.ResourceInUseException;
 import com.employeesystem.emsbackend.exception.ResourceNotFoundException;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -57,11 +59,19 @@ public class EmployeeService {
                 .toList();
     }
 
-    public PageResponseDTO<EmployeeResponseDTO> searchEmployees(String search, Long departmentId, Pageable pageable) {
+    public PageResponseDTO<EmployeeResponseDTO> searchEmployees(String search, Long departmentId, EmployeeStatus status, String designation, Long managerId, LocalDate joiningFrom, LocalDate joiningTo, Pageable pageable) {
         Page<Employee> page = employeeRepository.findAll(
-                EmployeeSpecification.withFilters(search, departmentId), pageable);
+                EmployeeSpecification.withFilters(search, departmentId, status, designation, managerId, joiningFrom, joiningTo), pageable);
         Page<EmployeeResponseDTO> mapped = page.map(employeeMapper::toResponseDto);
         return PageResponseDTO.from(mapped);
+    }
+
+    public PageResponseDTO<EmployeeResponseDTO> searchEmployees(String search, Long departmentId, Pageable pageable) {
+        return searchEmployees(search, departmentId, null, null, null, null, null, pageable);
+    }
+
+    public PageResponseDTO<EmployeeResponseDTO> searchEmployees(String search, Long departmentId, EmployeeStatus status, Pageable pageable) {
+        return searchEmployees(search, departmentId, status, null, null, null, null, pageable);
     }
 
     @Transactional

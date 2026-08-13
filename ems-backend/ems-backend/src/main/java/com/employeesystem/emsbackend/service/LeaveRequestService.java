@@ -23,6 +23,7 @@ public class LeaveRequestService {
     private final LeaveRequestRepository leaveRequestRepository;
     private final EmployeeRepository employeeRepository;
     private final LeaveRequestMapper leaveRequestMapper;
+    private final NotificationService notificationService;
 
     private static final List<LeaveStatus> ACTIVE_STATUSES = List.of(LeaveStatus.PENDING, LeaveStatus.APPROVED);
 
@@ -105,7 +106,13 @@ public class LeaveRequestService {
         leaveRequest.setDecidedBy(decider);
         leaveRequest.setDecidedAt(LocalDateTime.now());
 
-        return leaveRequestMapper.toResponseDto(leaveRequestRepository.save(leaveRequest));
+        LeaveRequest savedRequest = leaveRequestRepository.save(leaveRequest);
+        String decisionLabel = decision.getDecision() == LeaveStatus.APPROVED ? "approved" : "rejected";
+        String leaveTypeLabel = savedRequest.getLeaveType() == null ? "leave" : savedRequest.getLeaveType().name().toLowerCase() + " leave";
+        notificationService.notifyEmployee(savedRequest.getEmployee().getId(), "Leave request " + decisionLabel,
+                "Your " + leaveTypeLabel + " request has been " + decisionLabel + ".",
+                decisionLabel.equals("approved") ? NotificationType.SUCCESS : NotificationType.WARNING);
+        return leaveRequestMapper.toResponseDto(savedRequest);
     }
 
     @Transactional

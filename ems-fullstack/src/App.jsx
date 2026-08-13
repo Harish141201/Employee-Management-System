@@ -1,5 +1,6 @@
 import './App.css'
 import Header from './component/Header'
+import Sidebar from './component/Sidebar'
 import ListEmployeeComponent from './component/ListEmployeeComponent'
 import {
   BrowserRouter,
@@ -7,6 +8,7 @@ import {
   Route,
   useLocation
 } from 'react-router-dom'
+import { useState } from 'react'
 
 import EmployeeComponent from './component/EmployeeComponent'
 import EmployeeDetail from './component/EmployeeDetail'
@@ -15,18 +17,35 @@ import Login from './component/Login'
 import ProtectedRoute from './component/ProtectedRoute'
 import Dashboard from './component/Dashboard'
 import DepartmentsPage from './component/DepartmentsPage'
+import DepartmentDetail from './component/DepartmentDetail'
 import LeavePage from './component/LeavePage'
+import AttendancePage from './component/AttendancePage'
+import DocumentsPage from './component/DocumentsPage'
 import { AuthProvider } from './context/AuthContext'
+import { useAuth } from './context/useAuth'
+import { Navigate } from 'react-router-dom'
+import { ToastProvider } from './context/ToastContext'
+import { NotFoundPage } from './component/ErrorPages'
+import ErrorBoundary from './component/ErrorBoundary'
+
+function HomeRedirect() {
+  const { hasRole } = useAuth()
+  return <Navigate to={hasRole('ADMIN', 'HR') ? '/dashboard' : '/profile'} replace />
+}
 
 function AppRoutes() {
 
   const location = useLocation()
+  const { isAuthenticated } = useAuth()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const isLogin = location.pathname === '/login'
 
   return (
     <>
       {/* Hide Header on Login Page */}
-      {location.pathname !== '/login' && <Header />}
+      {!isLogin && isAuthenticated && <><Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} /><Header onToggleSidebar={() => setSidebarOpen(open => !open)} /></>}
 
+      <main className={isLogin || !isAuthenticated ? '' : 'app-shell'}>
       <Routes>
 
         <Route path="/login" element={<Login />} />
@@ -35,7 +54,7 @@ function AppRoutes() {
           path="/"
           element={
             <ProtectedRoute>
-              <ListEmployeeComponent />
+              <HomeRedirect />
             </ProtectedRoute>
           }
         />
@@ -66,6 +85,10 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/departments/:id"
+          element={<ProtectedRoute roles={['ADMIN', 'HR']}><DepartmentDetail /></ProtectedRoute>}
+        />
 
         <Route
           path="/leave"
@@ -75,6 +98,8 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route path="/attendance" element={<ProtectedRoute><AttendancePage /></ProtectedRoute>} />
+        <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
 
         <Route
           path="/add-employee"
@@ -112,19 +137,24 @@ function AppRoutes() {
           }
         />
 
+        <Route path="*" element={<NotFoundPage />} />
+
       </Routes>
+      </main>
     </>
   )
 }
 
 function App() {
-  return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </AuthProvider>
-  )
+  return <ErrorBoundary>
+    <ToastProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
+    </ToastProvider>
+  </ErrorBoundary>
 }
 
 export default App

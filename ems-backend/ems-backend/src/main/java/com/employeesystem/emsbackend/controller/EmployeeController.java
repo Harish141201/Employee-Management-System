@@ -5,6 +5,7 @@ import com.employeesystem.emsbackend.dto.EmployeeResponseDTO;
 import com.employeesystem.emsbackend.dto.EmployeeSelfUpdateDTO;
 import com.employeesystem.emsbackend.dto.PageResponseDTO;
 import com.employeesystem.emsbackend.entity.User;
+import com.employeesystem.emsbackend.entity.EmployeeStatus;
 import com.employeesystem.emsbackend.exception.ResourceNotFoundException;
 import com.employeesystem.emsbackend.service.EmployeeService;
 import jakarta.validation.Valid;
@@ -17,12 +18,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDate;
+import java.util.Set;
 
 @CrossOrigin(origins = "${app.cors.allowed-origin:http://localhost:5173}")
 @RestController
 @RequestMapping(path = "/api/emp")
 @RequiredArgsConstructor
 public class EmployeeController {
+
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "id", "firstName", "lastName", "email", "designation", "status", "joiningDate"
+    );
 
     private final EmployeeService employeeService;
 
@@ -34,15 +41,27 @@ public class EmployeeController {
     public ResponseEntity<PageResponseDTO<EmployeeResponseDTO>> getAllEmployee(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Long departmentId,
+            @RequestParam(required = false) EmployeeStatus status,
+            @RequestParam(required = false) String designation,
+            @RequestParam(required = false) Long managerId,
+            @RequestParam(required = false) LocalDate joiningFrom,
+            @RequestParam(required = false) LocalDate joiningTo,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String direction) {
 
-        Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        String safeSortBy = ALLOWED_SORT_FIELDS.contains(sortBy) ? sortBy : "id";
+        Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(safeSortBy).descending() : Sort.by(safeSortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        return ResponseEntity.ok(employeeService.searchEmployees(search, departmentId, pageable));
+        if (joiningFrom != null && joiningTo != null && joiningFrom.isAfter(joiningTo)) {
+            throw new IllegalArgumentException("joiningFrom must be on or before joiningTo");
+        }
+
+        return ResponseEntity.ok(status == null && designation == null && managerId == null && joiningFrom == null && joiningTo == null
+                ? employeeService.searchEmployees(search, departmentId, pageable)
+                : employeeService.searchEmployees(search, departmentId, status, designation, managerId, joiningFrom, joiningTo, pageable));
     }
 
     @GetMapping(path = "/{id}")

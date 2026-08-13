@@ -3,6 +3,8 @@ import { listEmployees, deleteEmployee } from '../service/EmployeeService.js'
 import { listDepartments } from '../service/DepartmentService.js'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
+import { useToast } from '../context/useToast'
+import ConfirmModal from './ConfirmModal'
 
 const PAGE_SIZE = 10
 
@@ -17,20 +19,36 @@ function ListEmployeeComponent() {
     const { hasRole } = useAuth()
     const canManage = hasRole('ADMIN', 'HR')
     const canDelete = hasRole('ADMIN')
+    const { showToast } = useToast()
 
     const [employee, setEmployee] = useState([])
     const [error, setError] = useState('')
 
     const [search, setSearch] = useState('')
     const [departmentId, setDepartmentId] = useState('')
+    const [status, setStatus] = useState('')
+    const [designation, setDesignation] = useState('')
+    const [managerId, setManagerId] = useState('')
+    const [joiningFrom, setJoiningFrom] = useState('')
+    const [joiningTo, setJoiningTo] = useState('')
+    const [sort, setSort] = useState('firstName:asc')
     const [departments, setDepartments] = useState([])
+    const [managers, setManagers] = useState([])
     const [page, setPage] = useState(0)
     const [totalPages, setTotalPages] = useState(0)
     const [totalElements, setTotalElements] = useState(0)
+    const [loading, setLoading] = useState(false)
+    const [selectedIds, setSelectedIds] = useState([])
+    const [deleteTarget, setDeleteTarget] = useState(null)
 
     useEffect(() => {
         if (canManage) {
             listDepartments().then((response) => setDepartments(response.data)).catch(() => {})
+            listEmployees({ page: 0, size: 1000, sortBy: 'firstName', direction: 'asc' }).then(response => {
+                const managerMap = new Map()
+                response.data.content.forEach(item => { if (item.id && item.firstName) managerMap.set(item.id, item) })
+                setManagers(Array.from(managerMap.values()))
+            }).catch(() => {})
         }
     }, [canManage])
 
@@ -39,29 +57,76 @@ function ListEmployeeComponent() {
             fetchEmployees()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [canManage, page, departmentId])
+    }, [canManage, page, departmentId, status, designation, managerId, joiningFrom, joiningTo, sort])
 
-    function fetchEmployees() {
+    function fetchEmployees(requestedPage = page, filters = {}) {
+        setLoading(true)
         listEmployees({
-            search: search || undefined,
-            departmentId: departmentId || undefined,
-            page,
+            search: (filters.searchValue ?? search) || undefined,
+            departmentId: (filters.departmentValue ?? departmentId) || undefined,
+            status: (filters.statusValue ?? status) || undefined,
+            designation: (filters.designationValue ?? designation) || undefined,
+            managerId: (filters.managerValue ?? managerId) || undefined,
+            joiningFrom: (filters.joiningFromValue ?? joiningFrom) || undefined,
+            joiningTo: (filters.joiningToValue ?? joiningTo) || undefined,
+            page: requestedPage,
             size: PAGE_SIZE,
-            sortBy: 'firstName',
-            direction: 'asc',
+            sortBy: (filters.sortValue ?? sort).split(':')[0],
+            direction: (filters.sortValue ?? sort).split(':')[1],
         }).then((response) => {
             setEmployee(response.data.content)
             setTotalPages(response.data.totalPages)
             setTotalElements(response.data.totalElements)
+            setSelectedIds([])
         }).catch(() => {
             setError('Could not load the employee list.')
-        })
+        }).finally(() => setLoading(false))
     }
 
     function handleSearchSubmit(e) {
         e.preventDefault()
+        if (joiningFrom && joiningTo && joiningFrom > joiningTo) {
+            setError('Joining date from must be on or before the joining date to.')
+            return
+        }
+        setError('')
         setPage(0)
-        fetchEmployees()
+        fetchEmployees(0)
+    }
+
+    function clearFilters() {
+        setSearch('')
+        setDepartmentId('')
+        setStatus('')
+        setDesignation('')
+        setManagerId('')
+        setJoiningFrom('')
+        setJoiningTo('')
+        setSort('firstName:asc')
+        setPage(0)
+        setSelectedIds([])
+        fetchEmployees(0, { searchValue: '', departmentValue: '', statusValue: '', designationValue: '', managerValue: '', joiningFromValue: '', joiningToValue: '', sortValue: 'firstName:asc' })
+    }
+
+    function toggleSelected(id) {
+        setSelectedIds(ids => ids.includes(id) ? ids.filter(selectedId => selectedId !== id) : [...ids, id])
+    }
+
+    function toggleAll() {
+        setSelectedIds(selectedIds.length === employee.length ? [] : employee.map(item => item.id))
+    }
+
+    function exportCsv() {
+        const rows = employee.filter(item => selectedIds.length === 0 || selectedIds.includes(item.id))
+        const headers = ['Employee ID', 'Name', 'Email', 'Designation', 'Department', 'Manager', 'Status']
+        const values = rows.map(item => [item.id, `${item.firstName} ${item.lastName}`, item.email || '', item.designation || '', item.departmentName || '', item.managerName || '', item.status || ''])
+        const csv = [headers, ...values].map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(',')).join('\n')
+        const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
+        const anchor = document.createElement('a')
+        anchor.href = url
+        anchor.download = 'peoplehub-employees.csv'
+        anchor.click()
+        URL.revokeObjectURL(url)
     }
 
     function addNewEmployee() {
@@ -74,12 +139,12 @@ function ListEmployeeComponent() {
         navigate(`/update-employee/${id}`)
     }
     function deletehandler(id) {
-        if (!window.confirm('Delete this employee? This cannot be undone.')) return
         deleteEmployee(id).then(() => {
-            fetchEmployees()
+            fetchEmployees(); showToast('Employee deleted successfully')
         }).catch(() => {
             setError('Could not delete this employee.')
-        })
+            showToast('Unable to delete employee', 'error')
+        }).finally(() => setDeleteTarget(null))
     }
 
     // EMPLOYEE-role accounts don't get a roster view at all — the backend
@@ -92,8 +157,8 @@ function ListEmployeeComponent() {
 
     return (
         <div className="ph-page">
-            <div className="ph-page-header">
-                <h2>Employees</h2>
+            <div className="ph-page-header employee-page-header">
+                <div><p className="page-kicker">People directory</p><h2>Employees</h2><p className="page-subtitle">Manage your people, reporting lines, and employee records.</p></div>
                 <button className="ph-btn ph-btn-primary" onClick={addNewEmployee}>
                     <i className="bi bi-person-plus-fill"></i> Add Employee
                 </button>
@@ -101,14 +166,15 @@ function ListEmployeeComponent() {
 
             {error && <div className="alert alert-danger ph-alert mb-3">{error}</div>}
 
-            <form className="d-flex gap-2 flex-wrap mb-3" onSubmit={handleSearchSubmit}>
+            <div className="employee-toolbar ph-card">
+            <form className="employee-filters" onSubmit={handleSearchSubmit}>
                 <input
                     type="text"
                     className="ph-input"
                     placeholder="Search name or email..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    style={{ maxWidth: 260 }}
+                    style={{ maxWidth: 300 }}
                 />
                 <select
                     className="ph-select"
@@ -121,18 +187,44 @@ function ListEmployeeComponent() {
                         <option key={dept.id} value={dept.id}>{dept.name}</option>
                     ))}
                 </select>
-                <button type="submit" className="ph-btn ph-btn-outline">
+                <select className="ph-select" value={status} onChange={(e) => { setStatus(e.target.value); setPage(0) }} aria-label="Filter by status" style={{ maxWidth: 180 }}>
+                    <option value=''>All statuses</option>
+                    <option value='ACTIVE'>Active</option>
+                    <option value='INACTIVE'>Inactive</option>
+                    <option value='TERMINATED'>Terminated</option>
+                </select>
+                <input type="text" className="ph-input" placeholder="Designation" value={designation} onChange={e => setDesignation(e.target.value)} style={{ maxWidth: 180 }} aria-label="Filter by designation" />
+                <select className="ph-select" value={managerId} onChange={e => { setManagerId(e.target.value); setPage(0) }} aria-label="Filter by manager" style={{ maxWidth: 200 }}>
+                    <option value=''>All managers</option>
+                    {managers.map(manager => <option key={manager.id} value={manager.id}>{manager.firstName} {manager.lastName}</option>)}
+                </select>
+                <input type="date" className="ph-input" value={joiningFrom} onChange={e => { setJoiningFrom(e.target.value); setPage(0) }} aria-label="Joining date from" title="Joining date from" style={{ maxWidth: 170 }} />
+                <input type="date" className="ph-input" value={joiningTo} onChange={e => { setJoiningTo(e.target.value); setPage(0) }} aria-label="Joining date to" title="Joining date to" style={{ maxWidth: 170 }} />
+                <select className="ph-select" value={sort} onChange={e => { setSort(e.target.value); setPage(0) }} aria-label="Sort employees" style={{ maxWidth: 190 }}>
+                    <option value="firstName:asc">Name A–Z</option>
+                    <option value="firstName:desc">Name Z–A</option>
+                    <option value="joiningDate:desc">Newest joining date</option>
+                    <option value="joiningDate:asc">Oldest joining date</option>
+                    <option value="status:asc">Status</option>
+                </select>
+                <button type="submit" className="ph-btn ph-btn-primary">
                     <i className="bi bi-search"></i> Search
                 </button>
+                <button type="button" className="ph-btn ph-btn-ghost" onClick={clearFilters}><i className="bi bi-arrow-counterclockwise"></i> Clear</button>
             </form>
+            <div className="employee-toolbar-footer"><span><strong>{totalElements}</strong> employees found{selectedIds.length > 0 && <em> · {selectedIds.length} selected</em>}</span><button className="ph-btn ph-btn-outline" onClick={exportCsv} disabled={!employee.length}><i className="bi bi-download"></i> Export CSV</button></div>
+            </div>
 
             <div className="ph-table-wrap">
-                {employee.length === 0 ? (
+                {loading ? (
+                    <div className="ph-empty"><i className="bi bi-arrow-repeat dashboard-spin"></i><p>Loading employees…</p></div>
+                ) : employee.length === 0 ? (
                     <div className="ph-empty">No employees match your filters.</div>
                 ) : (
                     <table className="ph-table">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" aria-label="Select all employees" checked={employee.length > 0 && selectedIds.length === employee.length} onChange={toggleAll} /></th>
                                 <th>ID</th>
                                 <th>Name</th>
                                 <th>Designation</th>
@@ -145,6 +237,7 @@ function ListEmployeeComponent() {
                         <tbody>
                             {employee.map(item => (
                                 <tr key={item.id}>
+                                    <td><input type="checkbox" aria-label={`Select ${item.firstName} ${item.lastName}`} checked={selectedIds.includes(item.id)} onChange={() => toggleSelected(item.id)} /></td>
                                     <td className="text-muted">{item.id}</td>
                                     <td>
                                         <div className="d-flex align-items-center gap-2" style={{ cursor: 'pointer' }} onClick={() => viewhandler(item.id)}>
@@ -169,11 +262,14 @@ function ListEmployeeComponent() {
                                     </td>
                                     <td>
                                         <div className="d-flex gap-2 justify-content-end">
+                                            <button className="ph-btn ph-btn-ghost" aria-label={`View ${item.firstName} ${item.lastName}`} onClick={() => viewhandler(item.id)}>
+                                                <i className="bi bi-eye-fill"></i>
+                                            </button>
                                             <button className="ph-btn ph-btn-ghost" onClick={() => updatehandler(item.id)}>
                                                 <i className="bi bi-pencil-fill"></i>
                                             </button>
                                             {canDelete && (
-                                                <button className="ph-btn" style={{ background: 'var(--ph-danger-bg)', color: 'var(--ph-danger)' }} onClick={() => deletehandler(item.id)}>
+                                                    <button className="ph-btn" style={{ background: 'var(--ph-danger-bg)', color: 'var(--ph-danger)' }} onClick={() => setDeleteTarget(item)}>
                                                     <i className="bi bi-trash-fill"></i>
                                                 </button>
                                             )}
@@ -205,6 +301,7 @@ function ListEmployeeComponent() {
                     </div>
                 </div>
             )}
+            <ConfirmModal open={Boolean(deleteTarget)} title="Delete employee?" message={deleteTarget ? `${deleteTarget.firstName} ${deleteTarget.lastName} will be permanently removed if no records depend on this employee.` : ''} confirmLabel="Delete employee" danger onCancel={() => setDeleteTarget(null)} onConfirm={() => deletehandler(deleteTarget.id)} />
         </div>
     )
 }
