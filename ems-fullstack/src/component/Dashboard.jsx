@@ -99,18 +99,36 @@ function Dashboard() {
                         <div><i className="bi bi-building-check"></i><span><strong>{largestDepartment?.name || 'No team yet'}</strong><small>{largestDepartment ? `${largestDepartment.employees} employees · largest team` : 'Create your first department'}</small></span></div>
                         <div><i className="bi bi-person-workspace"></i><span><strong>{summary?.employeesWithoutManager || 0} need manager assignment</strong><small>Keep reporting lines up to date</small></span></div>
                     </div>
-                    {statusBreakdown.length > 0 && <div className="dashboard-status-breakdown"><p>Employee status</p>{statusBreakdown.map(item => <div key={item.status}><span><i className={`dashboard-status-dot dashboard-status-dot--${item.status.toLowerCase()}`}></i>{item.status.toLowerCase().replace(/^./, char => char.toUpperCase())}</span><strong>{item.employeeCount}</strong></div>)}</div>}
+                    {statusBreakdown.length > 0 && (
+                        <div className="dashboard-status-breakdown">
+                            <p>Employee status</p>
+                            {statusBreakdown.map((item, index) => {
+                                const status = item?.status || 'Unknown'
+                                const statusKey = status.toLowerCase()
+                                const statusLabel = statusKey.replace(/^./, char => char.toUpperCase())
+                                return (
+                                    <div key={`${statusKey}-${index}`}>
+                                        <span>
+                                            <i className={`dashboard-status-dot dashboard-status-dot--${statusKey}`}></i>
+                                            {statusLabel}
+                                        </span>
+                                        <strong>{item?.employeeCount ?? 0}</strong>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
                 </aside>
             </section>
 
             <section className="ph-card dashboard-panel dashboard-recent-panel">
                 <div className="dashboard-panel__header"><div><p className="dashboard-panel__eyebrow">Latest additions</p><h2>Recent employees</h2></div><button className="dashboard-text-button" onClick={() => navigate('/emplist')}>View directory <i className="bi bi-arrow-right"></i></button></div>
-                {summary?.recentEmployees?.length ? <div className="dashboard-recent-list">{summary.recentEmployees.map(employee => <button key={employee.id} onClick={() => navigate(`/employees/${employee.id}`)}><span className="dashboard-recent-avatar">{employee.firstName.charAt(0).toUpperCase()}</span><span><strong>{employee.firstName} {employee.lastName}</strong><small>{employee.designation || 'Role not set'}{employee.departmentName ? ` · ${employee.departmentName}` : ''}</small></span><time>{employee.joiningDate}</time><i className="bi bi-chevron-right"></i></button>)}</div> : <div className="dashboard-recent-empty"><i className="bi bi-people"></i><span>No employees with joining dates yet.</span></div>}
+                {summary?.recentEmployees?.length ? <div className="dashboard-recent-list">{summary.recentEmployees.map(employee => <button key={employee.id} onClick={() => navigate(`/employees/${employee.id}`)}><span className="dashboard-recent-avatar">{(employee.firstName || '?').charAt(0).toUpperCase()}</span><span><strong>{employee.firstName} {employee.lastName}</strong><small>{employee.designation || 'Role not set'}{employee.departmentName ? ` · ${employee.departmentName}` : ''}</small></span><time>{employee.joiningDate}</time><i className="bi bi-chevron-right"></i></button>)}</div> : <div className="dashboard-recent-empty"><i className="bi bi-people"></i><span>No employees with joining dates yet.</span></div>}
             </section>
 
             <section className="ph-card dashboard-panel dashboard-on-leave-panel">
                 <div className="dashboard-panel__header"><div><p className="dashboard-panel__eyebrow">Availability today</p><h2>Employees currently on leave</h2></div><button className="dashboard-text-button" onClick={() => navigate('/leave')}>View leave <i className="bi bi-arrow-right"></i></button></div>
-                {summary?.employeesCurrentlyOnLeave?.length ? <div className="dashboard-recent-list">{summary.employeesCurrentlyOnLeave.map(request => <button key={request.id} onClick={() => navigate('/leave')}><span className="dashboard-recent-avatar dashboard-recent-avatar--leave">{request.employeeName.charAt(0).toUpperCase()}</span><span><strong>{request.employeeName}</strong><small>{request.leaveType} leave · returns {request.endDate}</small></span><time>{request.numberOfDays} day{request.numberOfDays === 1 ? '' : 's'}</time><i className="bi bi-chevron-right"></i></button>)}</div> : <div className="dashboard-recent-empty"><i className="bi bi-calendar2-check"></i><span>No one is on approved leave today.</span></div>}
+                {summary?.employeesCurrentlyOnLeave?.length ? <div className="dashboard-recent-list">{summary.employeesCurrentlyOnLeave.map(request => <button key={request.id} onClick={() => navigate('/leave')}><span className="dashboard-recent-avatar dashboard-recent-avatar--leave">{(request.employeeName || '?').charAt(0).toUpperCase()}</span><span><strong>{request.employeeName}</strong><small>{request.leaveType} leave · returns {request.endDate}</small></span><time>{request.numberOfDays} day{request.numberOfDays === 1 ? '' : 's'}</time><i className="bi bi-chevron-right"></i></button>)}</div> : <div className="dashboard-recent-empty"><i className="bi bi-calendar2-check"></i><span>No one is on approved leave today.</span></div>}
             </section>
 
             <section className="dashboard-bottom-grid">
