@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,8 +45,11 @@ public class AuthService {
     @Transactional
     public LoginResponseDTO login(LoginRequestDTO request) {
         try {
-            authenticationManager.authenticate(
+            Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
+            if (authentication != null && authentication.getPrincipal() instanceof User authenticatedUser) {
+                return completeLogin(authenticatedUser);
+            }
         } catch (BadCredentialsException ex) {
             // Deliberately vague — don't reveal whether it was the username
             // or password that was wrong.
@@ -54,7 +58,10 @@ public class AuthService {
 
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new BadCredentialsException("Invalid username or password"));
+        return completeLogin(user);
+    }
 
+    private LoginResponseDTO completeLogin(User user) {
         Long employeeId = user.getEmployee() != null ? user.getEmployee().getId() : null;
         String employeeName = user.getEmployee() != null
                 ? user.getEmployee().getFirstName() + " " + user.getEmployee().getLastName()

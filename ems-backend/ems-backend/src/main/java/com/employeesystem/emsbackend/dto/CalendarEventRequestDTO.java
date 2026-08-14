@@ -1,0 +1,1 @@
+package com.employeesystem.emsbackend.dto; import com.employeesystem.emsbackend.entity.CalendarEventType; import jakarta.validation.constraints.*; import java.time.LocalDate; public record CalendarEventRequestDTO(@NotBlank @Size(max=120) String title,@NotNull LocalDate eventDate,@NotNull CalendarEventType type,@Size(max=500) String description) { }

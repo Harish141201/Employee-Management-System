@@ -12,9 +12,14 @@ function Sidebar({ open, onClose }) {
             { to: '/departments', label: 'Departments', icon: 'bi-diagram-3-fill' },
             { to: '/attendance', label: 'Attendance', icon: 'bi-calendar-check-fill' },
             { to: '/leave', label: 'Leave management', icon: 'bi-calendar2-week-fill' },
+            { to: '/calendar', label: 'Workforce calendar', icon: 'bi-calendar3' },
             { to: '/documents', label: 'Documents', icon: 'bi-folder2-open' },
+            { to: '/reports', label: 'Reports', icon: 'bi-bar-chart-line-fill' },
+            { to: '/settings', label: 'Settings', icon: 'bi-sliders' },
+            { to: '/notifications', label: 'Notifications', icon: 'bi-bell-fill' },
         ]
-        : [{ to: '/profile', label: 'My profile', icon: 'bi-person-badge-fill' }, { to: '/attendance', label: 'My attendance', icon: 'bi-calendar-check-fill' }, { to: '/leave', label: 'My leave', icon: 'bi-calendar2-week-fill' }, { to: '/documents', label: 'My documents', icon: 'bi-folder2-open' }]
+        : [{ to: '/profile', label: 'My profile', icon: 'bi-person-badge-fill' }, { to: '/attendance', label: 'My attendance', icon: 'bi-calendar-check-fill' }, { to: '/leave', label: 'My leave', icon: 'bi-calendar2-week-fill' }, { to: '/calendar', label: 'My calendar', icon: 'bi-calendar3' }, { to: '/documents', label: 'My documents', icon: 'bi-folder2-open' }, { to: '/notifications', label: 'Notifications', icon: 'bi-bell-fill' }, { to: '/settings', label: 'Settings', icon: 'bi-sliders' }]
+    if (hasRole('ADMIN')) items.push({ to: '/users', label: 'User management', icon: 'bi-person-gear' }, { to: '/audit-logs', label: 'Audit logs', icon: 'bi-journal-text' })
 
     return <>
         <aside className={`app-sidebar ${open ? 'is-open' : ''}`}>

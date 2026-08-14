@@ -1,6 +1,7 @@
 package com.employeesystem.emsbackend.controller;
 
 import com.employeesystem.emsbackend.dto.UserManagementUpdateDTO;
+import com.employeesystem.emsbackend.dto.AdminResetPasswordDTO;
 import com.employeesystem.emsbackend.dto.UserResponseDTO;
 import com.employeesystem.emsbackend.entity.User;
 import com.employeesystem.emsbackend.service.UserManagementService;
@@ -28,6 +29,12 @@ public class UserManagementController {
     @PutMapping("/{userId}")
     public ResponseEntity<UserResponseDTO> update(@PathVariable Long userId, @Valid @RequestBody UserManagementUpdateDTO request,
                                                   @AuthenticationPrincipal User currentUser) {
-        return ResponseEntity.ok(userManagementService.update(userId, request, currentUser.getId()));
+        return ResponseEntity.ok(userManagementService.update(userId, request, currentUser));
+    }
+
+    @PutMapping("/{userId}/reset-password")
+    public ResponseEntity<Void> resetPassword(@PathVariable Long userId, @Valid @RequestBody AdminResetPasswordDTO request, @AuthenticationPrincipal User currentUser) {
+        userManagementService.resetPassword(userId, request, currentUser);
+        return ResponseEntity.noContent().build();
     }
 }

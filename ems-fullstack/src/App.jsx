@@ -1,32 +1,39 @@
 import './App.css'
 import Header from './component/Header'
 import Sidebar from './component/Sidebar'
-import ListEmployeeComponent from './component/ListEmployeeComponent'
 import {
   BrowserRouter,
   Routes,
   Route,
   useLocation
 } from 'react-router-dom'
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 
-import EmployeeComponent from './component/EmployeeComponent'
-import EmployeeDetail from './component/EmployeeDetail'
-import ProfilePage from './component/ProfilePage'
-import Login from './component/Login'
 import ProtectedRoute from './component/ProtectedRoute'
-import Dashboard from './component/Dashboard'
-import DepartmentsPage from './component/DepartmentsPage'
-import DepartmentDetail from './component/DepartmentDetail'
-import LeavePage from './component/LeavePage'
-import AttendancePage from './component/AttendancePage'
-import DocumentsPage from './component/DocumentsPage'
 import { AuthProvider } from './context/AuthContext'
 import { useAuth } from './context/useAuth'
 import { Navigate } from 'react-router-dom'
 import { ToastProvider } from './context/ToastContext'
 import { NotFoundPage } from './component/ErrorPages'
 import ErrorBoundary from './component/ErrorBoundary'
+
+const Login = lazy(() => import('./component/Login'))
+const Dashboard = lazy(() => import('./component/Dashboard'))
+const ListEmployeeComponent = lazy(() => import('./component/ListEmployeeComponent'))
+const EmployeeComponent = lazy(() => import('./component/EmployeeComponent'))
+const EmployeeDetail = lazy(() => import('./component/EmployeeDetail'))
+const ProfilePage = lazy(() => import('./component/ProfilePage'))
+const DepartmentsPage = lazy(() => import('./component/DepartmentsPage'))
+const DepartmentDetail = lazy(() => import('./component/DepartmentDetail'))
+const LeavePage = lazy(() => import('./component/LeavePage'))
+const AttendancePage = lazy(() => import('./component/AttendancePage'))
+const CalendarPage = lazy(() => import('./component/CalendarPage'))
+const DocumentsPage = lazy(() => import('./component/DocumentsPage'))
+const UserManagementPage = lazy(() => import('./component/UserManagementPage'))
+const AuditLogsPage = lazy(() => import('./component/AuditLogsPage'))
+const ReportsPage = lazy(() => import('./component/ReportsPage'))
+const SettingsPage = lazy(() => import('./component/SettingsPage'))
+const NotificationsPage = lazy(() => import('./component/NotificationsPage'))
 
 function HomeRedirect() {
   const { hasRole } = useAuth()
@@ -46,6 +53,7 @@ function AppRoutes() {
       {!isLogin && isAuthenticated && <><Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} /><Header onToggleSidebar={() => setSidebarOpen(open => !open)} /></>}
 
       <main className={isLogin || !isAuthenticated ? '' : 'app-shell'}>
+      <Suspense fallback={<div className="app-route-loading"><span className="spinner-border spinner-border-sm" aria-hidden="true"></span> Loading workspace…</div>}>
       <Routes>
 
         <Route path="/login" element={<Login />} />
@@ -100,6 +108,12 @@ function AppRoutes() {
         />
         <Route path="/attendance" element={<ProtectedRoute><AttendancePage /></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
+        <Route path="/users" element={<ProtectedRoute roles={['ADMIN']}><UserManagementPage /></ProtectedRoute>} />
+        <Route path="/audit-logs" element={<ProtectedRoute roles={['ADMIN']}><AuditLogsPage /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute roles={['ADMIN', 'HR']}><ReportsPage /></ProtectedRoute>} />
+        <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
 
         <Route
           path="/add-employee"
@@ -140,6 +154,7 @@ function AppRoutes() {
         <Route path="*" element={<NotFoundPage />} />
 
       </Routes>
+      </Suspense>
       </main>
     </>
   )

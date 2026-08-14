@@ -1,6 +1,7 @@
 package com.employeesystem.emsbackend.service;
 
 import com.employeesystem.emsbackend.dto.UserManagementUpdateDTO;
+import com.employeesystem.emsbackend.dto.AdminResetPasswordDTO;
 import com.employeesystem.emsbackend.dto.UserResponseDTO;
 import com.employeesystem.emsbackend.entity.Employee;
 import com.employeesystem.emsbackend.entity.User;
@@ -10,6 +11,7 @@ import com.employeesystem.emsbackend.repository.EmployeeRepository;
 import com.employeesystem.emsbackend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -19,6 +21,8 @@ import java.util.List;
 public class UserManagementService {
     private final UserRepository userRepository;
     private final EmployeeRepository employeeRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuditLogService auditLogService;
 
     @Transactional(readOnly = true)
     public List<UserResponseDTO> list() {
@@ -26,9 +30,9 @@ public class UserManagementService {
     }
 
     @Transactional
-    public UserResponseDTO update(Long userId, UserManagementUpdateDTO request, Long actingUserId) {
+    public UserResponseDTO update(Long userId, UserManagementUpdateDTO request, User actingUser) {
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User with ID " + userId + " not found"));
-        if (userId.equals(actingUserId) && !request.isEnabled()) throw new IllegalArgumentException("You cannot disable your own account");
+        if (userId.equals(actingUser.getId()) && !request.isEnabled()) throw new IllegalArgumentException("You cannot disable your own account");
         user.setRole(request.getRole());
         if (request.getEmployeeId() == null) {
             user.setEmployee(null);
@@ -39,7 +43,17 @@ public class UserManagementService {
             user.setEmployee(employee);
         }
         user.setEnabled(request.isEnabled());
-        return toResponse(userRepository.save(user));
+        UserResponseDTO response = toResponse(userRepository.save(user));
+        auditLogService.record(actingUser, "USER_UPDATED", "USER", userId, "Updated account " + user.getUsername());
+        return response;
+    }
+
+    @Transactional
+    public void resetPassword(Long userId, AdminResetPasswordDTO request, User actingUser) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User with ID " + userId + " not found"));
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        auditLogService.record(actingUser, "PASSWORD_RESET", "USER", userId, "Reset password for account " + user.getUsername());
     }
 
     private UserResponseDTO toResponse(User user) {

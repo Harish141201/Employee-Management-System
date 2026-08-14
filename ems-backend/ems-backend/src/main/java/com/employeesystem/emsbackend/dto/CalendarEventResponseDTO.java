@@ -1,0 +1,1 @@
+package com.employeesystem.emsbackend.dto; import com.employeesystem.emsbackend.entity.CalendarEventType; import java.time.LocalDate; public record CalendarEventResponseDTO(Long id,String title,LocalDate eventDate,CalendarEventType type,String description) { }
