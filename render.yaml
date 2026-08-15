@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: peoplehub-frontend
+    runtime: static
+    buildCommand: cd ems-fullstack && npm ci && npm run build
+    staticPublishPath: ./ems-fullstack/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

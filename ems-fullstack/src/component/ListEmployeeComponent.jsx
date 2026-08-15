@@ -215,7 +215,7 @@ function ListEmployeeComponent() {
             <div className="employee-toolbar-footer"><span><strong>{totalElements}</strong> employees found{selectedIds.length > 0 && <em> · {selectedIds.length} selected</em>}</span><button className="ph-btn ph-btn-outline" onClick={exportCsv} disabled={!employee.length}><i className="bi bi-download"></i> Export CSV</button></div>
             </div>
 
-            <div className="ph-table-wrap">
+            <div className="ph-table-wrap employee-directory-table">
                 {loading ? (
                     <div className="ph-empty"><i className="bi bi-arrow-repeat dashboard-spin"></i><p>Loading employees…</p></div>
                 ) : employee.length === 0 ? (
@@ -240,28 +240,23 @@ function ListEmployeeComponent() {
                                     <td><input type="checkbox" aria-label={`Select ${item.firstName} ${item.lastName}`} checked={selectedIds.includes(item.id)} onChange={() => toggleSelected(item.id)} /></td>
                                     <td className="text-muted">{item.id}</td>
                                     <td>
-                                        <div className="d-flex align-items-center gap-2" style={{ cursor: 'pointer' }} onClick={() => viewhandler(item.id)}>
-                                            <div style={{
-                                                width: 32, height: 32, borderRadius: '50%',
-                                                background: 'var(--ph-gradient)', color: '#fff',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                fontSize: 13, fontWeight: 700, flexShrink: 0,
-                                            }}>
+                                        <div className="employee-identity" onClick={() => viewhandler(item.id)}>
+                                            <div className="employee-identity__avatar">
                                                 {item.firstName.charAt(0).toUpperCase()}
                                             </div>
-                                            <span style={{ color: 'var(--ph-blue)', fontWeight: 500 }}>{item.firstName} {item.lastName}</span>
+                                            <span>{item.firstName} {item.lastName}</span>
                                         </div>
                                     </td>
                                     <td className="text-muted">{item.designation || '—'}</td>
-                                    <td>{item.departmentName || '—'}</td>
-                                    <td>{item.managerName ? <><span className="ph-chain">↳</span>{item.managerName}</> : '—'}</td>
+                                    <td>{item.departmentName ? <span className="employee-department">{item.departmentName}</span> : '—'}</td>
+                                    <td>{item.managerName ? <span className="employee-manager"><span className="ph-chain">↳</span>{item.managerName}</span> : '—'}</td>
                                     <td>
                                         {item.status
                                             ? <span className={`ph-badge ${STATUS_BADGE[item.status] || 'ph-badge-cancelled'}`}>{item.status}</span>
                                             : '—'}
                                     </td>
                                     <td>
-                                        <div className="d-flex gap-2 justify-content-end">
+                                        <div className="employee-row-actions">
                                             <button className="ph-btn ph-btn-ghost" aria-label={`View ${item.firstName} ${item.lastName}`} onClick={() => viewhandler(item.id)}>
                                                 <i className="bi bi-eye-fill"></i>
                                             </button>
@@ -283,7 +278,7 @@ function ListEmployeeComponent() {
             </div>
 
             {totalPages > 1 && (
-                <div className="d-flex justify-content-between align-items-center mt-3">
+                <div className="employee-pagination d-flex justify-content-between align-items-center mt-3">
                     <span className="text-muted small">
                         Page {page + 1} of {totalPages} ({totalElements} total)
                     </span>

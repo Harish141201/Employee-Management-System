@@ -148,12 +148,18 @@ cd ems-backend/ems-backend
 Runs against an in-memory H2 database — no MySQL or environment variables
 needed. See SETUP.md for what's covered.
 
-## Roadmap
+## Demo data
 
-Built so far: JWT auth, RBAC, department/manager hierarchy, pagination/search,
-dashboard, Swagger docs, tests, Docker. Not yet done: GitHub Actions CI,
-file/document upload, audit logging. Tracked as the natural next additions,
-not missing-by-accident.
+The backend seeds ten clearly labelled Indian sample employee profiles and four
+departments by default. Set `DEMO_DATA=false` to disable this in production.
+The seed checks email addresses before inserting, so it does not duplicate or
+overwrite existing records.
+
+## Included platform modules
+
+PeopleHub includes employee and department management, attendance, leave,
+documents, notifications, reports, calendar events, user management, audit
+logs, responsive navigation, and saved light/dark/system display preferences.
 
 ## Author
 

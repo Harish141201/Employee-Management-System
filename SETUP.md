@@ -1,4 +1,4 @@
-# Local Setup (Windows) — through Phase 3
+# Local Setup (Windows)
 
 ## Required software
 - JDK 17
@@ -28,6 +28,11 @@ $env:ADMIN_SEED_PASSWORD="ChooseAStrongPassword123!"
 - Optional: `JWT_SECRET` — a long random string for signing tokens. A dev
   default is baked in so the app runs without setting this, but set your
   own before deploying anywhere real.
+- Optional: `DEMO_DATA` — defaults to `true`. On startup, the app creates
+  four departments and ten Indian employee profiles with department,
+  designation, phone, birth date, employment type, active status, and joining
+  date so the dashboard, employee list, reports, and calendar views have
+  useful data immediately. Set `DEMO_DATA=false` for an empty workforce.
 
 Then, from `ems-backend/ems-backend`:
 ```powershell
@@ -57,9 +62,19 @@ Open **http://localhost:5173/login** and sign in with:
 As admin, you can:
 - Create departments (`POST /api/departments`)
 - Create employee records (via the UI's "Add Employee" button)
-- Create additional login accounts for HR staff or employees via
-  `POST /api/auth/register` (no UI for this yet — use Postman/curl; a
-  proper admin screen for this is a good Phase 4 addition)
+- Manage login accounts, roles, access, and password resets from the **User
+  Management** screen
+- Review audit logs, create company calendar events, and use the reports,
+  notifications, and settings screens
+
+### Demo workforce
+
+With `DEMO_DATA=true`, the employee list includes Aarav Sharma, Ananya Iyer,
+Rohan Verma, Priya Nair, Vikram Reddy, Kavya Menon, Arjun Patel, Meera
+Kulkarni, Aditya Rao, and Sneha Gupta. Each profile contains a department,
+designation, phone number, date of birth, employment type, active status, and
+joining date. The demo entries use the clearly marked `@peoplehub.demo` email
+domain.
 
 ### Roles at a glance
 | Role | Can do |
@@ -85,6 +100,8 @@ Tests run against an in-memory H2 database (see `src/test/resources/application.
 - `EmployeeControllerSecurityTest` — proves the RBAC matrix is actually enforced end-to-end
   through the real Spring Security filter chain (EMPLOYEE forbidden from listing, HR forbidden
   from deleting, ADMIN allowed, anonymous requests rejected)
+- `AuditLogControllerSecurityTest` and `CalendarEventControllerSecurityTest`
+  — prove the admin-only management endpoints remain protected
 
 ## 7. Running everything with Docker (alternative to steps 1-4)
 
