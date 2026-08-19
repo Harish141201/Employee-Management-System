@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# Pre-commit guard against committing hardcoded credentials.
+#
+# This exists because the same two literal passwords (a MySQL password and
+# an admin seed password) have been accidentally reintroduced into
+# application.properties multiple times in this project's history â€” usually
+# from an old snapshot/branch being merged back in. This hook is a cheap,
+# fast backstop: it does not replace being careful, but it turns "did I
+# remember to check?" into "the commit is blocked automatically."
+#
+# Install (run once per clone):
+#   cp scripts/hooks/pre-commit .git/hooks/pre-commit
+#   chmod +x .git/hooks/pre-commit
+
+set -euo pipefail
+
+# Known-bad literal secrets that have leaked into this repo before.
+# Add to this list if a new literal secret ever leaks, so it can never
+# silently come back via an old branch/snapshot.
+BLOCKED_PATTERNS=(
+  'Harish09@'
+  'Qazqaz1@'
+)
+
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM -- . ':!scripts/hooks/pre-commit')
+FOUND=0
+
+for pattern in "${BLOCKED_PATTERNS[@]}"; do
+  # Only check lines actually being ADDED (prefixed '+', excluding the
+  # '+++ b/file' diff header line) â€” a line being REMOVED naturally
+  # contains the old secret as part of showing what changed, and that is
+  # not something to block.
+  if git diff --cached -U0 -- $STAGED_FILES 2>/dev/null | grep -E '^\+[^+]' | grep -F -- "$pattern" > /dev/null; then
+    echo "COMMIT BLOCKED: staged changes contain a known hardcoded credential ('$pattern')." >&2
+    FOUND=1
+  fi
+done
+
+# General check: any staged application*.properties file, OR any staged
+# .java file's @Value annotation, with a literal fallback on a
+# *_PASSWORD/*_SECRET property â€” e.g. ${DB_PASSWORD:something} instead of
+# the safe ${DB_PASSWORD:} pattern with no fallback. Checking .java files
+# too matters: a @Value default can carry its own independent hardcoded
+# secret even when application.properties itself is clean (this happened
+# once already with JWT_SECRET living as its own literal default directly
+# in JwtUtil.java, separate from the one in application.properties).
+for file in $STAGED_FILES; do
+  case "$file" in
+    *application*.properties|*.java)
+      # Matches both env-var-style keys (${JWT_SECRET:literal}) and
+      # Spring property-style keys (${app.jwt.secret:literal}) â€” a
+      # literal fallback is unsafe either way.
+      if git show ":$file" 2>/dev/null | grep -E -i '\$\{[A-Za-z_.]*(password|secret)[A-Za-z_.]*:[^}]+\}' > /dev/null; then
+        echo "COMMIT BLOCKED: '$file' has a literal fallback value on a password/secret property." >&2
+        echo "Use the no-fallback form, e.g. \${DB_PASSWORD:} instead of \${DB_PASSWORD:someLiteral}." >&2
+        FOUND=1
+      fi
+      ;;
+  esac
+done
+
+if [ "$FOUND" -ne 0 ]; then
+  echo "" >&2
+  echo "If this is a false positive, review carefully before bypassing with --no-verify." >&2
+  exit 1
+fi
+
+exit 0

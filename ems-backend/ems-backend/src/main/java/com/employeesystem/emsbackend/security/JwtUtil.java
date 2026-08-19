@@ -4,20 +4,26 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.function.Function;
 
 @Component
 public class JwtUtil {
 
-    // Must be at least 256 bits for HS256. Set via env var in production —
-    // the default here is only for local dev convenience.
-    @Value("${app.jwt.secret:this-is-a-local-dev-only-secret-change-me-before-deploying-anywhere-real}")
+    // HS256 requires a key of at least 256 bits (32 bytes).
+    private static final int MIN_SECRET_BYTES = 32;
+
+    // No literal default on purpose — see the fail-fast check in init()
+    // below. A silent fallback here would mean every clone of this project
+    // could end up signing tokens with the same well-known secret.
+    @Value("${app.jwt.secret:}")
     private String jwtSecret;
 
     // Shorter now that a refresh-token flow exists to renew this — an
@@ -30,6 +36,25 @@ public class JwtUtil {
     // previous 24-hour token.
     @Value("${app.jwt.expiration-ms:3600000}") // 1h default
     private long jwtExpirationMs;
+
+    // Fails startup immediately with a clear message if JWT_SECRET is
+    // missing or too short, rather than letting the app start normally
+    // and then throw a cryptic WeakKeyException the first time someone
+    // tries to log in.
+    @PostConstruct
+    private void validateSecret() {
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is not set. Set the JWT_SECRET environment variable to a long, "
+                            + "random string (at least 32 characters) before starting the app.");
+        }
+        int byteLength = jwtSecret.getBytes(StandardCharsets.UTF_8).length;
+        if (byteLength < MIN_SECRET_BYTES) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is too short (" + byteLength + " bytes; need at least " + MIN_SECRET_BYTES
+                            + "). Use a longer, random string.");
+        }
+    }
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());

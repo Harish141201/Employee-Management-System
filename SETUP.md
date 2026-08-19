@@ -145,3 +145,31 @@ itself I could not run here (no Maven Central access in this sandbox) —
 please run `.\mvnw.cmd clean package` locally once to confirm before relying
 on the Docker build, though the changes since the last verified state were
 mechanical (new dependencies, new small classes) rather than structural.
+
+## Recommended: install the pre-commit hook
+
+`application.properties` reads all secrets from environment variables with
+no literal fallback, but to catch it early if a hardcoded credential is ever
+accidentally reintroduced (e.g. from merging an old branch or snapshot),
+install the included guard once per clone:
+```powershell
+copy scripts\hooks\pre-commit .git\hooks\pre-commit
+```
+On macOS/Linux:
+```bash
+cp scripts/hooks/pre-commit .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+It blocks any commit that reintroduces a known-bad literal secret, or a new
+literal fallback on any `*_PASSWORD`/`*_SECRET` property in
+`application.properties`.
+
+## Known limitation: document storage on Render
+
+`EmployeeDocumentService` currently writes uploaded files to local disk
+(`./uploads/peoplehub-documents` by default). That's fine for local dev and
+Docker (the volume persists across container restarts), but Render's web
+service filesystem is ephemeral — every redeploy wipes it, so uploaded
+documents won't survive a redeploy on the live demo. Before relying on
+document upload/download in a persistent live demo, swap this for real
+object storage (e.g. S3-compatible storage) or a Render persistent disk.
